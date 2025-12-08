@@ -441,55 +441,134 @@ body {
     color: #f97316;
 }
 
-/* Total Score */
+/* Total Score - Minimal Elegant Design */
 .total-score {
-    padding: 1.75rem;
-    border-radius: 0.75rem;
+    padding: 2.5rem;
+    border-radius: 1rem;
     border: 2px solid;
     margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
 }
 
 .total-score.low {
-    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    background: linear-gradient(135deg, rgba(220, 252, 231, 0.95) 0%, rgba(187, 247, 208, 0.95) 100%);
     border-color: #86efac;
     color: #14532d;
 }
 
 .total-score.medium {
-    background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%);
+    background: linear-gradient(135deg, rgba(254, 249, 195, 0.95) 0%, rgba(254, 240, 138, 0.95) 100%);
     border-color: #fde047;
     color: #713f12;
 }
 
 .total-score.orange {
-    background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+    background: linear-gradient(135deg, rgba(254, 215, 170, 0.95) 0%, rgba(253, 186, 116, 0.95) 100%);
     border-color: #fb923c;
     color: #7c2d12;
 }
 
 .total-score.high {
-    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    background: linear-gradient(135deg, rgba(254, 226, 226, 0.95) 0%, rgba(254, 202, 202, 0.95) 100%);
     border-color: #fca5a5;
     color: #7f1d1d;
 }
 
-.total-score-header {
+.total-score-wrapper {
+    position: relative;
+    z-index: 1;
+}
+
+.total-score-main {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 0.75rem;
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.total-score-content {
+    width: 100%;
+}
+
+.total-score-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    opacity: 0.7;
     margin-bottom: 0.75rem;
-    font-size: 1.5rem;
-    font-weight: bold;
-    flex-wrap: wrap;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
 }
 
 .total-score-number {
-    font-size: 2rem;
+    font-size: 5rem;
+    font-weight: 300;
+    line-height: 1;
+    letter-spacing: -0.02em;
+}
+
+.total-score-breakdown {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+}
+
+.breakdown-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 0.5rem;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.2s;
+}
+
+.breakdown-item:hover {
+    background: rgba(255, 255, 255, 0.6);
+    transform: translateY(-2px);
+}
+
+.breakdown-item.additional {
+    grid-column: span 2;
+}
+
+.breakdown-label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    opacity: 0.6;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.breakdown-value {
+    font-size: 1.5rem;
+    font-weight: 300;
+    letter-spacing: -0.01em;
 }
 
 .total-score-recommendation {
-    font-size: 1.125rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 1.5rem;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.recommendation-text {
+    font-size: 1rem;
     font-weight: 600;
+    line-height: 1.4;
+    text-align: center;
 }
 
 /* Transfer Section */
@@ -1140,6 +1219,32 @@ body {
         height: 50px;
         font-size: 1.5rem;
     }
+
+    .total-score-main {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .total-score-number {
+        font-size: 3rem;
+    }
+
+    .total-score-breakdown {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .breakdown-item.additional {
+        grid-column: span 2;
+    }
+
+    .total-score-recommendation {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .recommendation-text {
+        font-size: 1.125rem;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1299,6 +1404,14 @@ body {
 
 /* Option Buttons Container */
 .option-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+/* Option Buttons Inline - แบบในบรรทัดเดียวกับ input-row */
+.option-buttons-inline {
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
