@@ -61,26 +61,21 @@
                         <input type="number" id="temp-input" placeholder="°C" min="30" max="45" step="0.1" />
                         <span class="unit-text">°C</span>
                     </div>
-                    <div class="selector-row">
-                        <label>หรือเลือกช่วงอุณหภูมิ:</label>
-                        <div class="option-buttons" id="temp-options">
-                            <button class="option-btn" data-temp="37">≤ 37.9 °C</button>
-                            <button class="option-btn" data-temp="38.5">38.0 - 38.9 °C</button>
-                            <button class="option-btn" data-temp="39">≥ 39 °C</button>
-                        </div>
-                    </div>
-                    <div class="score-display-grid" id="temp-score-display">
-                        <div class="score-display-item" data-score="0">
-                            <div class="score-display-label">≤ 37.9 °C</div>
-                            <div class="score-display-value">0</div>
-                        </div>
-                        <div class="score-display-item" data-score="1">
-                            <div class="score-display-label">38.0 - 38.9 °C</div>
-                            <div class="score-display-value">1</div>
-                        </div>
-                        <div class="score-display-item" data-score="2">
-                            <div class="score-display-label">≥ 39 °C</div>
-                            <div class="score-display-value">2</div>
+                    <div class="score-selection-row">
+                        <label>หรือเลือกคะแนนโดยตรง:</label>
+                        <div class="score-buttons-grid" id="temp-score-buttons">
+                            <button class="score-select-btn" data-score="0">
+                                <div class="score-select-label">≤ 37.9 °C</div>
+                                <div class="score-select-value">0</div>
+                            </button>
+                            <button class="score-select-btn" data-score="1">
+                                <div class="score-select-label">38.0 - 38.9 °C</div>
+                                <div class="score-select-value">1</div>
+                            </button>
+                            <button class="score-select-btn" data-score="2">
+                                <div class="score-select-label">≥ 39 °C</div>
+                                <div class="score-select-value">2</div>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -107,49 +102,58 @@
                     กรุณาเลือกช่วงอายุเพื่อดูเกณฑ์การประเมินที่เหมาะสม
                 </div>
                 <div id="cardiovascular-input-container" class="input-section" style="display: none">
-                    <div class="input-row">
-                        <label for="pr-input">กรอก PR (ชีพจร):</label>
-                        <input type="number" id="pr-input" placeholder="ครั้ง/นาที" min="0" max="300" />
-                        <span class="unit-text">ครั้ง/นาที</span>
-                    </div>
-                    <div class="input-row">
-                        <label>สีผิว:</label>
-                        <div class="option-buttons-inline" id="skin-color-options">
-                            <button class="option-btn" data-value="pink">ผิวสีชมพูดี</button>
-                            <button class="option-btn" data-value="pale">ผิวสีซีด</button>
-                            <button class="option-btn" data-value="gray">ผิวสีเทา</button>
-                            <button class="option-btn" data-value="mottled">ผิวสีเทาและตัวลาย</button>
+                    <div class="cardio-inputs-grid">
+                        <div class="input-group">
+                            <label for="pr-input">PR (ชีพจร)</label>
+                            <div class="input-with-unit">
+                                <input type="number" id="pr-input" placeholder="ครั้ง/นาที" min="0" max="300" />
+                                <span class="unit-text">bpm</span>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>สีผิว</label>
+                            <div class="option-buttons-compact" id="skin-color-options">
+                                <button class="option-btn-compact" data-value="pink">ชมพู</button>
+                                <button class="option-btn-compact" data-value="pale">ซีด</button>
+                                <button class="option-btn-compact" data-value="gray">เทา</button>
+                                <button class="option-btn-compact" data-value="mottled">เทาลาย</button>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>CRT</label>
+                            <div class="option-buttons-compact" id="crt-options">
+                                <button class="option-btn-compact" data-value="1-2">1-2 วิ</button>
+                                <button class="option-btn-compact" data-value="3">3 วิ</button>
+                                <button class="option-btn-compact" data-value="4+">≥4 วิ</button>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="bp-input">BP</label>
+                            <div class="input-with-unit">
+                                <input type="text" id="bp-input" placeholder="###/##" maxlength="7" />
+                                <span class="unit-text">mmHg</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="input-row">
-                        <label>CRT:</label>
-                        <div class="option-buttons-inline" id="crt-options">
-                            <button class="option-btn" data-value="1-2">CRT 1-2 วินาที</button>
-                            <button class="option-btn" data-value="3">CRT 3 วินาที</button>
-                            <button class="option-btn" data-value="4+">CRT ≥ 4 วินาที</button>
-                        </div>
-                    </div>
-                    <div class="input-row">
-                        <label for="bp-input">กรอก BP:</label>
-                        <input type="text" id="bp-input" placeholder="###/##" maxlength="7" />
-                        <span class="unit-text">mmHg</span>
-                    </div>
-                    <div class="score-display-grid" id="cardiovascular-score-display">
-                        <div class="score-display-item" data-score="0">
-                            <div class="score-display-label">ปกติ / ผิวชมพู / CRT 1-2 วินาที</div>
-                            <div class="score-display-value">0</div>
-                        </div>
-                        <div class="score-display-item" data-score="1">
-                            <div class="score-display-label">ผิวซีด / CRT 3 วินาที</div>
-                            <div class="score-display-value">1</div>
-                        </div>
-                        <div class="score-display-item" data-score="2">
-                            <div class="score-display-label">ผิวเทา / CRT ≥ 4 วินาที</div>
-                            <div class="score-display-value">2</div>
-                        </div>
-                        <div class="score-display-item" data-score="3">
-                            <div class="score-display-label">ผิวเทาตัวลาย / ชีพจรผิดปกติมาก</div>
-                            <div class="score-display-value">3</div>
+                    <div class="score-selection-row">
+                        <label>หรือเลือกคะแนนโดยตรง:</label>
+                        <div class="score-buttons-grid" id="cardiovascular-score-buttons">
+                            <button class="score-select-btn" data-score="0">
+                                <div class="score-select-label">ปกติ</div>
+                                <div class="score-select-value">0</div>
+                            </button>
+                            <button class="score-select-btn" data-score="1">
+                                <div class="score-select-label">ผิวซีด/CRT 3วิ</div>
+                                <div class="score-select-value">1</div>
+                            </button>
+                            <button class="score-select-btn" data-score="2">
+                                <div class="score-select-label">ผิวเทา/CRT ≥4วิ</div>
+                                <div class="score-select-value">2</div>
+                            </button>
+                            <button class="score-select-btn" data-score="3">
+                                <div class="score-select-label">ผิวเทาลาย/ผิดปกติมาก</div>
+                                <div class="score-select-value">3</div>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -164,57 +168,66 @@
                     กรุณาเลือกช่วงอายุเพื่อดูเกณฑ์การประเมินที่เหมาะสม
                 </div>
                 <div id="respiratory-input-container" class="input-section" style="display: none">
-                    <div class="input-row">
-                        <label for="rr-input">กรอกอัตราการหายใจ (RR):</label>
-                        <input type="number" id="rr-input" placeholder="ครั้ง/นาที" min="0" max="200" />
-                        <span class="unit-text">ครั้ง/นาที</span>
-                    </div>
-                    <div class="input-row">
-                        <label>Retraction:</label>
-                        <div class="option-buttons-inline" id="retraction-options">
-                            <button class="option-btn" data-value="no">ไม่มี Retraction</button>
-                            <button class="option-btn" data-value="yes">มี Retraction</button>
+                    <div class="cardio-inputs-grid">
+                        <div class="input-group">
+                            <label for="rr-input">RR (อัตราหายใจ)</label>
+                            <div class="input-with-unit">
+                                <input type="number" id="rr-input" placeholder="ครั้ง/นาที" min="0" max="200" />
+                                <span class="unit-text">tpm</span>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Retraction</label>
+                            <div class="option-buttons-compact" id="retraction-options">
+                                <button class="option-btn-compact" data-value="no">ไม่มี</button>
+                                <button class="option-btn-compact" data-value="yes">มี</button>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>FiO₂</label>
+                            <div class="option-buttons-compact" id="fio2-options">
+                                <button class="option-btn-compact" data-value="none">ไม่ใช้</button>
+                                <button class="option-btn-compact" data-value="30">≥30%</button>
+                                <button class="option-btn-compact" data-value="40">≥40%</button>
+                                <button class="option-btn-compact" data-value="50">≥50%</button>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>O₂</label>
+                            <div class="option-buttons-compact" id="o2-options">
+                                <button class="option-btn-compact" data-value="none">ไม่ใช้</button>
+                                <button class="option-btn-compact" data-value="4">≥4L</button>
+                                <button class="option-btn-compact" data-value="6">≥6L</button>
+                                <button class="option-btn-compact" data-value="8">≥8L</button>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="spo2-input">SpO₂</label>
+                            <div class="input-with-unit">
+                                <input type="number" id="spo2-input" placeholder="%" min="0" max="100" />
+                                <span class="unit-text">%</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="input-row">
-                        <label>FiO₂:</label>
-                        <div class="option-buttons-inline" id="fio2-options">
-                            <button class="option-btn" data-value="none">ไม่ใช้</button>
-                            <button class="option-btn" data-value="30">FiO₂ ≥ 30%</button>
-                            <button class="option-btn" data-value="40">FiO₂ ≥ 40%</button>
-                            <button class="option-btn" data-value="50">FiO₂ ≥ 50%</button>
-                        </div>
-                    </div>
-                    <div class="input-row">
-                        <label>O₂:</label>
-                        <div class="option-buttons-inline" id="o2-options">
-                            <button class="option-btn" data-value="none">ไม่ใช้</button>
-                            <button class="option-btn" data-value="4">O₂ ≥ 4 LPM</button>
-                            <button class="option-btn" data-value="6">O₂ ≥ 6 LPM</button>
-                            <button class="option-btn" data-value="8">O₂ ≥ 8 LPM</button>
-                        </div>
-                    </div>
-                    <div class="input-row">
-                        <label for="spo2-input">กรอก SpO₂:</label>
-                        <input type="number" id="spo2-input" placeholder="%" min="0" max="100" />
-                        <span class="unit-text">%</span>
-                    </div>
-                    <div class="score-display-grid" id="respiratory-score-display">
-                        <div class="score-display-item" data-score="0">
-                            <div class="score-display-label">ปกติ / ไม่มี Retraction</div>
-                            <div class="score-display-value">0</div>
-                        </div>
-                        <div class="score-display-item" data-score="1">
-                            <div class="score-display-label">มี Retraction / FiO₂ ≥30% / O₂ ≥4</div>
-                            <div class="score-display-value">1</div>
-                        </div>
-                        <div class="score-display-item" data-score="2">
-                            <div class="score-display-label">FiO₂ ≥40% / O₂ ≥6</div>
-                            <div class="score-display-value">2</div>
-                        </div>
-                        <div class="score-display-item" data-score="3">
-                            <div class="score-display-label">FiO₂ ≥50% / O₂ ≥8 / SpO₂ < 95%</div>
-                            <div class="score-display-value">3</div>
+                    <div class="score-selection-row">
+                        <label>หรือเลือกคะแนนโดยตรง:</label>
+                        <div class="score-buttons-grid" id="respiratory-score-buttons">
+                            <button class="score-select-btn" data-score="0">
+                                <div class="score-select-label">ปกติ</div>
+                                <div class="score-select-value">0</div>
+                            </button>
+                            <button class="score-select-btn" data-score="1">
+                                <div class="score-select-label">มี Retraction</div>
+                                <div class="score-select-value">1</div>
+                            </button>
+                            <button class="score-select-btn" data-score="2">
+                                <div class="score-select-label">FiO₂ ≥40%</div>
+                                <div class="score-select-value">2</div>
+                            </button>
+                            <button class="score-select-btn" data-score="3">
+                                <div class="score-select-label">SpO₂<95%/FiO₂≥50%</div>
+                                <div class="score-select-value">3</div>
+                            </button>
                         </div>
                     </div>
                 </div>
