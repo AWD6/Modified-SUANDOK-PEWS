@@ -1,1263 +1,1506 @@
-// Age groups data with updated PR ranges
-const ageGroups = [
-    {
-        id: 'newborn',
-        name: 'Newborn',
-        ageRange: 'แรกเกิด-1 เดือน',
-        heartRate: { min: 80, max: 140 },
-        respiratoryRate: { min: 35, max: 50 }
-    },
-    {
-        id: 'infant',
-        name: 'Infant',
-        ageRange: '1-12 เดือน',
-        heartRate: { min: 80, max: 140 },
-        respiratoryRate: { min: 35, max: 50 }
-    },
-    {
-        id: 'toddler',
-        name: 'Toddler',
-        ageRange: '13 เดือน - 3 ปี',
-        heartRate: { min: 70, max: 130 },
-        respiratoryRate: { min: 25, max: 40 }
-    },
-    {
-        id: 'preschool',
-        name: 'Preschool',
-        ageRange: '4-6 ปี',
-        heartRate: { min: 70, max: 120 },
-        respiratoryRate: { min: 20, max: 30 }
-    },
-    {
-        id: 'schoolage',
-        name: 'School age',
-        ageRange: '7-12 ปี',
-        heartRate: { min: 70, max: 110 },
-        respiratoryRate: { min: 20, max: 30 }
-    },
-    {
-        id: 'adolescent',
-        name: 'Adolescent',
-        ageRange: '13-19 ปี',
-        heartRate: { min: 60, max: 100 },
-        respiratoryRate: { min: 20, max: 30 }
-    }
-];
 
-// Behavior options
-const behaviorOptions = [
-    { score: 0, label: "เล่นเหมาะสม" },
-    { score: 1, label: "หลับ" },
-    { score: 2, label: "ร้องไห้งอแง พักไม่ได้" },
-    { score: 3, label: "ซึม/สับสน หรือ ตอบสนองต่อการกระตุ้นความปวดลดลง" }
-];
-
-// State
-let state = {
-    ageGroup: null,
-    temperatureValue: '',
-    temperatureScore: null,
-    behaviorScore: null,
-    cardiovascularScore: null,
-    respiratoryScore: null,
-    additionalRisk: false,
-    hn: '',
-    location: '',
-    locationOther: '',
-    nursingNotes: '',
-    symptomsChanged: 'no',
-    transferDestination: '',
-    transferDestinationOther: '',
-    prValue: '',
-    rrValue: '',
-    skinColor: '',
-    crt: '',
-    retraction: '',
-    fio2: '',
-    o2: '',
-    bloodPressure: '',
-    spo2: '',
-    parentRecordId: null,
-    isReassessment: false,
-    chdType: '',
-    palsEnabled: false,
-    records: []
-};
-
-let isSavingRecord = false;
-let lastSaveTime = 0;
-const SAVE_COOLDOWN = 2000;
-const submittedRecordIds = new Set();
-
-// Initialize
-document.addEventListener('DOMContentLoaded', function() {
-    loadRecords();
-    renderAgeGrid();
-    renderBehaviorGrid();
-    updateTotalScore();
-    renderRecords();
-
-    const transferOtherInput = document.getElementById('transfer-destination-other');
-    if (transferOtherInput) {
-        transferOtherInput.style.display = 'none';
-    }
-
-    // Event listeners
-    document.getElementById('hn-input-top').addEventListener('input', (e) => {
-        state.hn = e.target.value;
-    });
-
-    document.getElementById('location-select').addEventListener('change', (e) => {
-        state.location = e.target.value;
-        const otherInput = document.getElementById('location-other');
-        if (e.target.value === 'อื่นๆ') {
-            otherInput.style.display = 'block';
-        } else {
-            otherInput.style.display = 'none';
-            state.locationOther = '';
-            otherInput.value = '';
-        }
-    });
-
-    document.getElementById('location-other').addEventListener('input', (e) => {
-        state.locationOther = e.target.value;
-    });
-
-    document.getElementById('nursing-notes').addEventListener('input', (e) => {
-        state.nursingNotes = e.target.value;
-    });
-
-    document.getElementById('transfer-destination-select').addEventListener('change', (e) => {
-        state.transferDestination = e.target.value;
-        const otherInput = document.getElementById('transfer-destination-other');
-        if (e.target.value === 'อื่นๆ') {
-            otherInput.style.display = 'block';
-        } else {
-            otherInput.style.display = 'none';
-            state.transferDestinationOther = '';
-            otherInput.value = '';
-        }
-    });
-
-    document.getElementById('transfer-destination-other').addEventListener('input', (e) => {
-        state.transferDestinationOther = e.target.value;
-    });
-
-    // Temperature input
-    const tempInput = document.getElementById('temp-input');
-    if (tempInput) {
-        tempInput.addEventListener('input', (e) => {
-            state.temperatureValue = e.target.value;
-            document.querySelectorAll('#temp-options .option-btn').forEach(btn => btn.classList.remove('selected'));
-            calculateTemperatureScore();
-        });
-    }
-
-    // Temperature score select buttons
-    document.querySelectorAll('#temp-score-buttons .score-select-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('#temp-score-buttons .score-select-btn').forEach(b => b.classList.remove('selected'));
-            this.classList.add('selected');
-            const score = parseInt(this.dataset.score);
-            state.temperatureScore = score;
-            if (tempInput) {
-                tempInput.value = '';
-            }
-            state.temperatureValue = '';
-            updateTotalScore();
-        });
-    });
-
-    // PR input
-    const prInput = document.getElementById('pr-input');
-    if (prInput) {
-        prInput.addEventListener('input', (e) => {
-            state.prValue = e.target.value;
-            calculateCardiovascularScore();
-        });
-    }
-
-    // Skin color buttons
-    document.querySelectorAll('#skin-color-options .option-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('#skin-color-options .option-btn').forEach(b => b.classList.remove('selected'));
-            this.classList.add('selected');
-            state.skinColor = this.dataset.value;
-            calculateCardiovascularScore();
-        });
-    });
-
-    // CRT buttons
-    document.querySelectorAll('#crt-options .option-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('#crt-options .option-btn').forEach(b => b.classList.remove('selected'));
-            this.classList.add('selected');
-            state.crt = this.dataset.value;
-            calculateCardiovascularScore();
-        });
-    });
-
-    // BP input
-    const bpInput = document.getElementById('bp-input');
-    if (bpInput) {
-        bpInput.addEventListener('input', (e) => {
-            let value = e.target.value.replace(/[^\d]/g, '');
-            if (value.length >= 4) {
-                let formatted = '';
-                if (value.length === 4) {
-                    formatted = value.slice(0, 2) + '/' + value.slice(2, 4);
-                } else if (value.length === 5) {
-                    formatted = value.slice(0, 3) + '/' + value.slice(3, 5);
-                } else if (value.length >= 6) {
-                    formatted = value.slice(0, 3) + '/' + value.slice(3, 6);
-                } else {
-                    formatted = value;
-                }
-                e.target.value = formatted;
-                state.bloodPressure = formatted;
-            } else {
-                e.target.value = value;
-                state.bloodPressure = value;
-            }
-        });
-    }
-
-    // RR input
-    const rrInput = document.getElementById('rr-input');
-    if (rrInput) {
-        rrInput.addEventListener('input', (e) => {
-            state.rrValue = e.target.value;
-            calculateRespiratoryScore();
-        });
-    }
-
-    // Retraction buttons
-    document.querySelectorAll('#retraction-options .option-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('#retraction-options .option-btn').forEach(b => b.classList.remove('selected'));
-            this.classList.add('selected');
-            state.retraction = this.dataset.value;
-            calculateRespiratoryScore();
-        });
-    });
-
-    // FiO2 buttons
-    document.querySelectorAll('#fio2-options .option-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('#fio2-options .option-btn').forEach(b => b.classList.remove('selected'));
-            this.classList.add('selected');
-            state.fio2 = this.dataset.value;
-            calculateRespiratoryScore();
-        });
-    });
-
-    // O2 buttons
-    document.querySelectorAll('#o2-options .option-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('#o2-options .option-btn').forEach(b => b.classList.remove('selected'));
-            this.classList.add('selected');
-            state.o2 = this.dataset.value;
-            calculateRespiratoryScore();
-        });
-    });
-
-    // SpO2 input
-    const spo2Input = document.getElementById('spo2-input');
-    if (spo2Input) {
-        spo2Input.addEventListener('input', (e) => {
-            state.spo2 = e.target.value;
-            calculateRespiratoryScore();
-            checkCyanoticCHDCondition();
-        });
-    }
-
-    // Cardiovascular score select buttons
-    document.querySelectorAll('#cardiovascular-score-buttons .score-select-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('#cardiovascular-score-buttons .score-select-btn').forEach(b => b.classList.remove('selected'));
-            this.classList.add('selected');
-            const score = parseInt(this.dataset.score);
-            state.cardiovascularScore = score;
-            updateTotalScore();
-        });
-    });
-
-    // Respiratory score select buttons
-    document.querySelectorAll('#respiratory-score-buttons .score-select-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('#respiratory-score-buttons .score-select-btn').forEach(b => b.classList.remove('selected'));
-            this.classList.add('selected');
-            const score = parseInt(this.dataset.score);
-            state.respiratoryScore = score;
-            updateTotalScore();
-        });
-    });
-
-    document.getElementById('additional-risk').addEventListener('change', (e) => {
-        state.additionalRisk = e.target.checked;
-        updateTotalScore();
-    });
-
-    document.querySelectorAll('.symptom-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.symptom-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            state.symptomsChanged = this.dataset.value;
-        });
-    });
-
-    document.querySelector('.btn-transfer').addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (isSavingRecord) return;
-        if (!state.transferDestination) {
-            alert('กรุณาเลือกสถานที่ส่งต่อ');
-        } else {
-            saveRecord('Transfer');
-        }
-    });
-
-    document.querySelector('.btn-reset').addEventListener('click', resetForm);
-
-    const palsBtn = document.getElementById('pals-button');
-    if (palsBtn) {
-        palsBtn.addEventListener('click', () => {
-            state.palsEnabled = !state.palsEnabled;
-            palsBtn.classList.toggle('active', state.palsEnabled);
-        });
-    }
-
-    // CHD Modal handlers
-    document.getElementById('chd-btn').addEventListener('click', () => {
-        document.getElementById('chd-modal').style.display = 'flex';
-    });
-
-    document.getElementById('modal-close').addEventListener('click', () => {
-        document.getElementById('chd-modal').style.display = 'none';
-    });
-
-    document.querySelectorAll('.chd-option-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const chdType = this.dataset.chd;
-            state.chdType = chdType;
-            const chdSelected = document.getElementById('chd-selected');
-            const displayText = chdType === 'acyanotic' ? 'Acyanotic CHD' : 'Cyanotic CHD';
-            const icon = chdType === 'acyanotic' ? '○' : '●';
-            chdSelected.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <span style="font-size: 1.25rem;">${icon}</span>
-                    <span style="font-weight: 600;">${displayText}</span>
-                    <button onclick="clearCHD()" style="margin-left: auto; padding: 0.25rem 0.5rem; background: #ef4444; color: white; border: none; border-radius: 0.25rem; cursor: pointer; font-size: 0.75rem;">ยกเลิก</button>
-                </div>
-            `;
-            chdSelected.style.display = 'block';
-            document.getElementById('chd-modal').style.display = 'none';
-            checkCyanoticCHDCondition();
-        });
-    });
-
-    window.addEventListener('click', (e) => {
-        const modal = document.getElementById('chd-modal');
-        if (e.target === modal) {
-            modal.style.display = 'none';
-        }
-    });
-});
-
-function clearCHD() {
-    state.chdType = '';
-    document.getElementById('chd-selected').style.display = 'none';
-    checkCyanoticCHDCondition();
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-function calculateTemperatureScore() {
-    const temp = parseFloat(state.temperatureValue);
-    let score = null;
-
-    if (!isNaN(temp)) {
-        if (temp <= 37.9) {
-            score = 0;
-        } else if (temp >= 38.0 && temp <= 38.9) {
-            score = 1;
-        } else if (temp >= 39) {
-            score = 2;
-        }
-        state.temperatureScore = score;
-    }
-
-    // Update visual feedback on score buttons
-    document.querySelectorAll('#temp-score-buttons .score-select-btn').forEach(btn => {
-        btn.classList.toggle('selected', parseInt(btn.dataset.score) === state.temperatureScore);
-    });
-
-    updateTotalScore();
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Sarabun', 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(135deg, #eff6ff 0%, #f9fafb 50%, #fef3c7 100%);
+    min-height: 100vh;
+    padding: 2rem 1rem;
 }
 
-function calculateCardiovascularScore() {
-    if (!state.ageGroup) return;
-
-    const ageDetails = ageGroups.find(a => a.id === state.ageGroup);
-    const pr = parseInt(state.prValue);
-    const skinColor = state.skinColor;
-    const crt = state.crt;
-
-    let prScore = null;
-    let skinCrtScore = null;
-
-    // Calculate PR score based on age group
-    if (!isNaN(pr)) {
-        if (state.ageGroup === 'newborn' || state.ageGroup === 'infant') {
-            if (pr <= 140) prScore = 0;
-            else if (pr >= 141 && pr <= 149) prScore = 1;
-            else if (pr >= 150 && pr <= 159) prScore = 2;
-            else if (pr >= 160 || pr <= 79) prScore = 3;
-        } else if (state.ageGroup === 'toddler') {
-            if (pr <= 130) prScore = 0;
-            else if (pr >= 131 && pr <= 139) prScore = 1;
-            else if (pr >= 140 && pr <= 149) prScore = 2;
-            else if (pr >= 150 || pr <= 69) prScore = 3;
-        } else if (state.ageGroup === 'preschool') {
-            if (pr <= 120) prScore = 0;
-            else if (pr >= 121 && pr <= 129) prScore = 1;
-            else if (pr >= 130 && pr <= 139) prScore = 2;
-            else if (pr >= 140 || pr <= 69) prScore = 3;
-        } else if (state.ageGroup === 'schoolage') {
-            if (pr <= 110) prScore = 0;
-            else if (pr >= 111 && pr <= 119) prScore = 1;
-            else if (pr >= 120 && pr <= 129) prScore = 2;
-            else if (pr >= 130 || pr <= 69) prScore = 3;
-        } else if (state.ageGroup === 'adolescent') {
-            if (pr <= 100) prScore = 0;
-            else if (pr >= 111 && pr <= 119) prScore = 1;
-            else if (pr >= 120 && pr <= 129) prScore = 2;
-            else if (pr >= 130 || pr <= 59) prScore = 3;
-        }
-    }
-
-    // Calculate skin color and CRT score
-    if (skinColor === 'pink' && crt === '1-2') {
-        skinCrtScore = 0;
-    } else if (skinColor === 'pale' || crt === '3') {
-        skinCrtScore = 1;
-    } else if (skinColor === 'gray' || crt === '4+') {
-        skinCrtScore = 2;
-    } else if (skinColor === 'mottled') {
-        skinCrtScore = 3;
-    }
-
-    // Final score is the maximum of PR score and skin/CRT score
-    let finalScore = null;
-    if (prScore !== null && skinCrtScore !== null) {
-        finalScore = Math.max(prScore, skinCrtScore);
-    } else if (prScore !== null) {
-        finalScore = prScore;
-    } else if (skinCrtScore !== null) {
-        finalScore = skinCrtScore;
-    }
-
-    state.cardiovascularScore = finalScore;
-
-    // Update visual feedback on score buttons
-    document.querySelectorAll('#cardiovascular-score-buttons .score-select-btn').forEach(btn => {
-        btn.classList.toggle('selected', parseInt(btn.dataset.score) === finalScore);
-    });
-
-    updateTotalScore();
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
 }
 
-function calculateRespiratoryScore() {
-    if (!state.ageGroup) return;
-
-    const ageDetails = ageGroups.find(a => a.id === state.ageGroup);
-    const rr = parseInt(state.rrValue);
-    const spo2 = parseFloat(state.spo2);
-
-    let rrScore = null;
-    let oxygenScore = null;
-    let spo2Score = null;
-
-    // Calculate RR score based on age group
-    if (!isNaN(rr)) {
-        if (state.ageGroup === 'newborn' || state.ageGroup === 'infant') {
-            if (rr >= 35 && rr <= 50) rrScore = 0;
-            else if (rr >= 51 && rr <= 59) rrScore = 1;
-            else if (rr >= 60 && rr <= 69) rrScore = 2;
-            else if (rr <= 30) rrScore = 3;
-        } else if (state.ageGroup === 'toddler') {
-            if (rr >= 25 && rr <= 40) rrScore = 0;
-            else if (rr >= 41 && rr <= 49) rrScore = 1;
-            else if (rr >= 50 && rr <= 59) rrScore = 2;
-            else if (rr <= 20) rrScore = 3;
-        } else if (state.ageGroup === 'preschool' || state.ageGroup === 'schoolage' || state.ageGroup === 'adolescent') {
-            if (rr >= 20 && rr <= 30) rrScore = 0;
-            else if (rr >= 31 && rr <= 39) rrScore = 1;
-            else if (rr >= 40 && rr <= 49) rrScore = 2;
-            else if (rr <= 16) rrScore = 3;
-        }
-    }
-
-    // Add retraction modifier
-    if (state.retraction === 'yes' && rrScore !== null && rrScore < 3) {
-        rrScore = Math.min(rrScore + 1, 3);
-    }
-
-    // Calculate oxygen support score (FiO2 or O2)
-    if (state.fio2 === '30' || state.o2 === '4') {
-        oxygenScore = 1;
-    } else if (state.fio2 === '40' || state.o2 === '6') {
-        oxygenScore = 2;
-    } else if (state.fio2 === '50' || state.o2 === '8') {
-        oxygenScore = 3;
-    }
-
-    // Calculate SpO2 score
-    if (!isNaN(spo2)) {
-        if (spo2 < 95) {
-            spo2Score = 3;
-        }
-        // Check for Cyanotic CHD condition
-        if (state.chdType === 'cyanotic' && spo2 < 75) {
-            spo2Score = 3;
-        }
-    }
-
-    // Final score is the maximum of all scores
-    let finalScore = 0;
-    if (rrScore !== null) finalScore = Math.max(finalScore, rrScore);
-    if (oxygenScore !== null) finalScore = Math.max(finalScore, oxygenScore);
-    if (spo2Score !== null) finalScore = Math.max(finalScore, spo2Score);
-
-    state.respiratoryScore = finalScore;
-
-    // Update visual feedback on score buttons
-    document.querySelectorAll('#respiratory-score-buttons .score-select-btn').forEach(btn => {
-        btn.classList.toggle('selected', parseInt(btn.dataset.score) === finalScore);
-    });
-
-    updateTotalScore();
+/* Header */
+.header {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    padding: 2.5rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    border-top: 4px solid #3b82f6;
 }
 
-function checkCyanoticCHDCondition() {
-    calculateRespiratoryScore();
-    updateTotalScore();
+.header h1 {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #1e3a8a;
+    margin-bottom: 0.5rem;
 }
 
-function renderAgeGrid() {
-    const grid = document.getElementById('age-grid');
-    grid.innerHTML = '';
-    ageGroups.forEach(age => {
-        const button = document.createElement('button');
-        button.className = 'age-button';
-        button.innerHTML = `
-            <div class="age-name">${age.name}</div>
-            <div class="age-range">${age.ageRange}</div>
-        `;
-        button.addEventListener('click', () => selectAge(age.id));
-        grid.appendChild(button);
-    });
+.header p {
+    color: #2563eb;
+    font-weight: 500;
+    font-size: 1.25rem;
 }
 
-function selectAge(ageId) {
-    if (state.ageGroup === ageId) {
-        state.ageGroup = null;
-        document.querySelectorAll('.age-button').forEach(btn => btn.classList.remove('selected'));
-        document.getElementById('temp-input-container').style.display = 'none';
-        document.getElementById('cardiovascular-input-container').style.display = 'none';
-        document.getElementById('respiratory-input-container').style.display = 'none';
-        document.getElementById('temperature-warning').style.display = 'block';
-        document.getElementById('cardiovascular-warning').style.display = 'block';
-        document.getElementById('respiratory-warning').style.display = 'block';
-        return;
+/* Main Card */
+.main-card {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    padding: 2.5rem;
+}
+
+/* Form Section */
+.form-section {
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.form-section label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+}
+
+.form-section input,
+.form-section textarea,
+.form-section select {
+    width: 100%;
+    font-size: 1rem;
+    border: 2px solid #d1d5db;
+    border-radius: 0.5rem;
+    padding: 0.875rem;
+    transition: all 0.2s;
+}
+
+.form-section input:focus,
+.form-section textarea:focus,
+.form-section select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.form-section textarea {
+    resize: vertical;
+}
+
+/* Scoring Section */
+.scoring-section {
+    margin-bottom: 2.5rem;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.section-header h2 {
+    font-size: 1.375rem;
+    font-weight: bold;
+    color: #1f2937;
+}
+
+.required {
+    color: #ef4444;
+}
+
+.badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+}
+
+.badge-purple {
+    background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+}
+
+.badge-blue {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.badge-red {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.badge-purple-2 {
+    background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+}
+
+.badge-orange {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+}
+
+/* Error & Warning Messages */
+.error-message {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: #fee2e2;
+    border: 2px solid #fca5a5;
+    border-radius: 0.5rem;
+    color: #991b1b;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.warning-message {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: #f5f3ff;
+    border: 2px solid #c4b5fd;
+    border-radius: 0.5rem;
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Age Grid */
+.age-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.age-button {
+    min-height: 80px;
+    border-radius: 0.75rem;
+    border: 2px solid #e5e7eb;
+    background: white;
+    padding: 1.25rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+}
+
+.age-button:hover {
+    border-color: #a855f7;
+    box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);
+    transform: translateY(-2px);
+}
+
+.age-button.selected {
+    border-color: #a855f7;
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+    box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+}
+
+.age-button.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+    animation: checkmarkBounce 0.5s ease-out;
+}
+
+@keyframes checkmarkBounce {
+    0% {
+        transform: scale(0);
+        opacity: 0;
     }
-
-    state.ageGroup = ageId;
-    document.getElementById('age-error').style.display = 'none';
-    document.querySelectorAll('.age-button').forEach((btn, index) => {
-        btn.classList.toggle('selected', ageGroups[index].id === ageId);
-    });
-
-    const ageGroup = ageGroups.find(a => a.id === ageId);
-    if (ageGroup) {
-        // Show temperature input
-        document.getElementById('temp-input-container').style.display = 'block';
-        document.getElementById('temperature-warning').style.display = 'none';
-
-        // Show cardiovascular inputs
-        const cardioHeader = document.querySelector('#cardiovascular-section .section-header h2');
-        if (cardioHeader) {
-            cardioHeader.innerHTML = `ระบบไหลเวียนโลหิต (Cardiovascular) <span style="color: #2563eb; font-weight: 600; font-size: 0.9rem; margin-left: 0.5rem;">PR ปกติ : ${ageGroup.heartRate.min} - ${ageGroup.heartRate.max} ครั้ง/นาที</span>`;
-        }
-        document.getElementById('cardiovascular-input-container').style.display = 'block';
-        document.getElementById('cardiovascular-warning').style.display = 'none';
-
-        // Show respiratory inputs
-        const respHeader = document.querySelector('#respiratory-section .section-header h2');
-        if (respHeader) {
-            respHeader.innerHTML = `ระบบทางเดินหายใจ (Respiratory) <span style="color: #2563eb; font-weight: 600; font-size: 0.9rem; margin-left: 0.5rem;">RR ปกติ : ${ageGroup.respiratoryRate.min} - ${ageGroup.respiratoryRate.max} ครั้ง/นาที</span>`;
-        }
-        document.getElementById('respiratory-input-container').style.display = 'block';
-        document.getElementById('respiratory-warning').style.display = 'none';
-
-        // Recalculate scores to update displays with age-specific descriptions
-        calculateCardiovascularScore();
-        calculateRespiratoryScore();
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
     }
 }
 
-function renderBehaviorGrid() {
-    const grid = document.getElementById('behavior-grid');
-    grid.innerHTML = '';
-    behaviorOptions.forEach(option => {
-        const button = document.createElement('button');
-        button.className = 'score-button';
-        button.innerHTML = `
-            <div class="score-label">${option.label}</div>
-            <div class="score-value">${option.score}</div>
-        `;
-        button.addEventListener('click', () => selectBehavior(option.score));
-        grid.appendChild(button);
-    });
+.age-name {
+    font-weight: bold;
+    font-size: 0.95rem;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
 }
 
-function selectBehavior(score) {
-    if (state.behaviorScore === score) {
-        state.behaviorScore = null;
-    } else {
-        state.behaviorScore = score;
+.age-range {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+/* Score Grid for Behavior */
+.score-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.score-button {
+    min-height: 120px;
+    border-radius: 0.75rem;
+    border: 2px solid #e5e7eb;
+    background: white;
+    padding: 1.25rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+}
+
+.score-button:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.2);
+    transform: translateY(-4px);
+}
+
+.score-button.selected {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+}
+
+.score-button.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 24px;
+    height: 24px;
+    color: #3b82f6;
+    font-size: 1.25rem;
+    font-weight: bold;
+    animation: checkmarkPop 0.3s ease-out;
+}
+
+@keyframes checkmarkPop {
+    0% {
+        transform: scale(0) rotate(-45deg);
+        opacity: 0;
     }
-    document.querySelectorAll('#behavior-grid .score-button').forEach((btn, index) => {
-        btn.classList.toggle('selected', behaviorOptions[index].score === state.behaviorScore);
-    });
-    updateTotalScore();
-}
-
-function updateTotalScore() {
-    const temperature = state.temperatureScore || 0;
-    const behavior = state.behaviorScore || 0;
-    const cardiovascular = state.cardiovascularScore || 0;
-    const respiratory = state.respiratoryScore || 0;
-    const additional = state.additionalRisk ? 2 : 0;
-    const total = temperature + behavior + cardiovascular + respiratory + additional;
-
-    const display = document.getElementById('total-score-display');
-    const recommendation = getRecommendation(total);
-    const riskLevel = getRiskLevel(total);
-
-    display.className = `total-score ${riskLevel}`;
-    display.innerHTML = `
-        <div class="total-score-wrapper">
-            <div class="total-score-main">
-                <div class="total-score-content">
-                    <div class="total-score-label">คะแนนรวม PEWS</div>
-                    <div class="total-score-number">${total}</div>
-                </div>
-            </div>
-            <div class="total-score-breakdown">
-                <div class="breakdown-item">
-                    <span class="breakdown-label">Temp</span>
-                    <span class="breakdown-value">${temperature}</span>
-                </div>
-                <div class="breakdown-item">
-                    <span class="breakdown-label">พฤติกรรม</span>
-                    <span class="breakdown-value">${behavior}</span>
-                </div>
-                <div class="breakdown-item">
-                    <span class="breakdown-label">ไหลเวียน</span>
-                    <span class="breakdown-value">${cardiovascular}</span>
-                </div>
-                <div class="breakdown-item">
-                    <span class="breakdown-label">หายใจ</span>
-                    <span class="breakdown-value">${respiratory}</span>
-                </div>
-                ${additional > 0 ? `
-                <div class="breakdown-item additional">
-                    <span class="breakdown-label">เสี่ยง</span>
-                    <span class="breakdown-value">${additional}</span>
-                </div>
-                ` : ''}
-            </div>
-            <div class="total-score-recommendation">
-                <div class="recommendation-text">${recommendation}</div>
-            </div>
-        </div>
-    `;
-    document.getElementById('nursing-notes').value = recommendation;
-    state.nursingNotes = recommendation;
-}
-
-function getRiskLevel(score) {
-    if (score <= 1) return 'low';
-    if (score === 2) return 'medium';
-    if (score === 3) return 'orange';
-    return 'high';
-}
-
-function getRecommendation(score) {
-    if (score <= 1) return 'รับบริการตามปกติ';
-    if (score === 2) return 'ติดตาม และ ประเมินอาการ ทุก 1-2 ชั่วโมง';
-    if (score === 3) return 'ให้ผู้ป่วยได้รับการประเมินโดยแพทย์ ภายใน 30 นาที';
-    if (score >= 4) return 'ส่งต่อ ER';
-    return 'รับบริการตามปกติ';
-}
-
-async function submitToGoogleForm(record) {
-    if (submittedRecordIds.has(record.id)) {
-        return;
+    50% {
+        transform: scale(1.3) rotate(5deg);
     }
-
-    // Google Form URL ของคุณ
-    const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSdNjCW8kkM3zOJfxL8aC5vWoS32_FIpf4yYusaujFOKbhxQrQ/formResponse';
-    const formData = new FormData();
-
-    const safeText = (val) => {
-        if (val === undefined || val === null || String(val).trim() === '') {
-            return '-';
-        }
-        return String(val);
-    };
-
-    // แปลงชื่อช่วงอายุเป็นภาษาไทย
-    const ageGroupMapping = {
-        'newborn': 'Newborn (แรกเกิด-1 เดือน)',
-        'infant': 'Infant (1-12 เดือน)',
-        'toddler': 'Toddler (13 เดือน - 3 ปี)',
-        'preschool': 'Preschool (4-6 ปี)',
-        'schoolage': 'School age (7-12 ปี)',
-        'adolescent': 'Adolescent (13-19 ปี)'
-    };
-
-    // แปลง CHD Type
-    const chdTypeMapping = {
-        'acyanotic': 'Acyanotic CHD',
-        'cyanotic': 'Cyanotic CHD',
-        '': 'ไม่มี CHD'
-    };
-
-    // สร้าง Vital Signs รวม
-    const vitalSigns = `Temp: ${safeText(record.temperatureValue)} °C | PR: ${safeText(record.prValue)} bpm | RR: ${safeText(record.rrValue)} tpm | BP: ${safeText(record.bloodPressure)} mmHg | SpO₂: ${safeText(record.spo2)}%`;
-
-    // สร้างรายละเอียดคะแนน
-    const scoreDetails = `Temp Score: ${safeText(record.temperatureScore)} | Behavior: ${safeText(record.behaviorScore)} | Cardiovascular: ${safeText(record.cardiovascularScore)} | Respiratory: ${safeText(record.respiratoryScore)} | Additional Risk: ${record.additionalRisk ? 'มี' : 'ไม่มี'} | Skin: ${safeText(record.skinColor)} | CRT: ${safeText(record.crt)} | Retraction: ${safeText(record.retraction)} | FiO₂: ${safeText(record.fio2)} | O₂: ${safeText(record.o2)}`;
-
-    // Note การพยาบาล
-    let notesToSend = safeText(record.nursingNotes);
-    if (record.isReassessment && record.parentRecordId) {
-        const parent = state.records.find(r => r.id === record.parentRecordId);
-        if (parent) {
-            const scoreComparison = `คะแนน: ${parent.totalScore} ➜ ${record.totalScore}`;
-            const symptomComparison = `อาการเปลี่ยน: ${parent.symptomsChanged === 'yes' ? 'มี' : 'ไม่มี'} ➜ ${record.symptomsChanged === 'yes' ? 'มี' : 'ไม่มี'}`;
-            const comparisonInfo = `[ประเมินซ้ำ] ${scoreComparison} | ${symptomComparison}`;
-            if (notesToSend === '-') {
-                notesToSend = comparisonInfo;
-            } else {
-                notesToSend = `${comparisonInfo} | Note: ${notesToSend}`;
-            }
-        }
-    }
-
-    // ส่งข้อมูลไปยัง Google Form ตาม entry IDs ที่ถูกต้อง
-    formData.append('entry.548024940', safeText(record.hn)); // HN
-    formData.append('entry.1691416727', safeText(record.location)); // สถานที่
-    formData.append('entry.1308705625', ageGroupMapping[record.ageGroup] || safeText(record.ageGroup)); // ช่วงอายุ
-    formData.append('entry.54134142', safeText(record.temperatureValue)); // Temp (°C)
-    formData.append('entry.968429810', safeText(record.totalScore)); // คะแนนรวม PEWS
-    formData.append('entry.385871425', vitalSigns); // Vital Signs
-    formData.append('entry.381918120', scoreDetails); // รายละเอียดคะแนน
-    formData.append('entry.2139857838', chdTypeMapping[record.chdType] || 'ไม่ระบุ'); // CHD
-    formData.append('entry.1652284044', record.palsEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'); // PALS
-    formData.append('entry.1322870299', notesToSend); // การพยาบาล
-    formData.append('entry.565363340', safeText(record.transferDestination)); // ส่งต่อไปที่
-    formData.append('entry.396417988', new Date(record.createdAt).toLocaleString('th-TH')); // เวลาบันทึก
-    formData.append('entry.913159674', record.isReassessment ? 'ใช่' : 'ไม่ใช่'); // ประเมินซ้ำ
-
-    console.log(`📤 กำลังส่งข้อมูล ID: ${record.id} ไป Google Form...`);
-    console.log('📝 ข้อมูลที่ส่ง:', {
-        HN: record.hn,
-        Location: record.location,
-        AgeGroup: ageGroupMapping[record.ageGroup],
-        TotalScore: record.totalScore,
-        CreatedAt: new Date(record.createdAt).toLocaleString('th-TH')
-    });
-
-    submittedRecordIds.add(record.id);
-
-    try {
-        await fetch(GOOGLE_FORM_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: formData
-        });
-        console.log(`✅ ส่งข้อมูล ID: ${record.id} สำเร็จ`);
-    } catch (error) {
-        console.error('❌ Error sending to Google Form:', error);
-        submittedRecordIds.delete(record.id);
+    100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
     }
 }
 
-async function saveRecord(action) {
-    const now = Date.now();
-    if (now - lastSaveTime < SAVE_COOLDOWN) return;
-    if (isSavingRecord) return;
+.score-label {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #1f2937;
+    margin-bottom: 0.75rem;
+    padding-right: 1.5rem;
+}
 
-    if (!state.ageGroup) {
-        document.getElementById('age-error').style.display = 'block';
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        alert('กรุณาเลือกช่วงอายุผู้ป่วยก่อนทำการบันทึก');
-        return;
+.score-value {
+    font-size: 1.75rem;
+    font-weight: bold;
+    color: #2563eb;
+}
+
+/* Input Section Styling */
+.input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Cardio Inputs Grid - สำหรับ Cardiovascular และ Respiratory */
+.cardio-inputs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.input-group label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.input-with-unit {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.input-group input[type="number"],
+.input-group input[type="text"] {
+    flex: 1;
+    font-size: 1rem;
+    font-weight: 600;
+    border: 2px solid #3b82f6;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+    transform: scale(1.02);
+}
+
+.unit-text {
+    font-size: 0.875rem;
+    color: #475569;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Option Buttons Compact */
+.option-buttons-compact {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.option-btn-compact {
+    flex: 1;
+    min-width: 60px;
+    padding: 0.625rem 1rem;
+    border: 2px solid #d1d5db;
+    border-radius: 0.5rem;
+    background: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.option-btn-compact:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    transform: translateY(-1px);
+}
+
+.option-btn-compact.selected {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+}
+
+/* Score Selection Row */
+.score-selection-row {
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 2px solid #cbd5e1;
+    border-radius: 0.75rem;
+}
+
+.score-selection-row > label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 1rem;
+}
+
+.score-buttons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+}
+
+.score-select-btn {
+    min-height: 90px;
+    border-radius: 0.75rem;
+    border: 2px solid #e5e7eb;
+    background: white;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.score-select-btn:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.score-select-btn.selected {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.score-select-btn.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    color: #3b82f6;
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+.score-select-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #475569;
+    text-align: center;
+    line-height: 1.3;
+}
+
+.score-select-btn.selected .score-select-label {
+    color: #1e40af;
+    font-weight: 600;
+}
+
+.score-select-value {
+    font-size: 1.75rem;
+    font-weight: bold;
+    color: #2563eb;
+}
+
+/* Checkbox */
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
+    border: 2px solid #fdba74;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-wrap: wrap;
+}
+
+.checkbox-label:hover {
+    background: #fef3c7;
+    border-color: #fb923c;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.score-badge {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #f97316;
+}
+
+/* Total Score - Minimal Elegant Design */
+.total-score {
+    padding: 2.5rem;
+    border-radius: 1rem;
+    border: 2px solid;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+.total-score.low {
+    background: linear-gradient(135deg, rgba(220, 252, 231, 0.95) 0%, rgba(187, 247, 208, 0.95) 100%);
+    border-color: #86efac;
+    color: #14532d;
+}
+
+.total-score.medium {
+    background: linear-gradient(135deg, rgba(254, 249, 195, 0.95) 0%, rgba(254, 240, 138, 0.95) 100%);
+    border-color: #fde047;
+    color: #713f12;
+}
+
+.total-score.orange {
+    background: linear-gradient(135deg, rgba(254, 215, 170, 0.95) 0%, rgba(253, 186, 116, 0.95) 100%);
+    border-color: #fb923c;
+    color: #7c2d12;
+}
+
+.total-score.high {
+    background: linear-gradient(135deg, rgba(254, 226, 226, 0.95) 0%, rgba(254, 202, 202, 0.95) 100%);
+    border-color: #fca5a5;
+    color: #7f1d1d;
+}
+
+.total-score-wrapper {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.total-score-main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.total-score-content {
+    width: 100%;
+}
+
+.total-score-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    opacity: 0.7;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+}
+
+.total-score-number {
+    font-size: 5rem;
+    font-weight: 300;
+    line-height: 1;
+    letter-spacing: -0.02em;
+}
+
+.total-score-breakdown {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+    width: 100%;
+}
+
+.breakdown-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 0.5rem;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.2s;
+}
+
+.breakdown-item:hover {
+    background: rgba(255, 255, 255, 0.6);
+    transform: translateY(-2px);
+}
+
+.breakdown-item.additional {
+    grid-column: span 2;
+}
+
+.breakdown-label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    opacity: 0.6;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.breakdown-value {
+    font-size: 1.5rem;
+    font-weight: 300;
+    letter-spacing: -0.01em;
+}
+
+.total-score-recommendation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 1.5rem;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    width: 100%;
+}
+
+.recommendation-text {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.4;
+    text-align: center;
+}
+
+/* Transfer Section */
+.transfer-section {
+    margin-bottom: 2rem;
+    padding: 2rem;
+    background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 50%, #fed7aa 100%);
+    border: 3px solid #fb923c;
+    border-radius: 1rem;
+    box-shadow: 0 10px 25px rgba(251, 146, 60, 0.2),
+                0 4px 10px rgba(251, 146, 60, 0.1),
+                inset 0 -2px 10px rgba(255, 255, 255, 0.5);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.transfer-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(251, 146, 60, 0.1) 0%, transparent 70%);
+    animation: pulse 3s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.5;
     }
-
-    isSavingRecord = true;
-    lastSaveTime = now;
-
-    const transferBtn = document.querySelector('.btn-transfer');
-    const originalBtnText = transferBtn ? transferBtn.innerHTML : '';
-
-    if (transferBtn) {
-        transferBtn.disabled = true;
-        transferBtn.innerHTML = '<span style="display:inline-block;animation:spin 1s linear infinite">⏳</span> กำลังส่ง...';
-        transferBtn.style.opacity = '0.7';
-        transferBtn.style.cursor = 'not-allowed';
-
-        if (!document.getElementById('temp-spin-style')) {
-            const style = document.createElement('style');
-            style.id = 'temp-spin-style';
-            style.innerHTML = '@keyframes spin { 100% { transform: rotate(360deg); } }';
-            document.head.appendChild(style);
-        }
-    }
-
-    try {
-        const temperature = state.temperatureScore || 0;
-        const behavior = state.behaviorScore || 0;
-        const cardiovascular = state.cardiovascularScore || 0;
-        const respiratory = state.respiratoryScore || 0;
-        const additional = state.additionalRisk ? 2 : 0;
-        const total = temperature + behavior + cardiovascular + respiratory + additional;
-
-        const locationValue = state.location === 'อื่นๆ' ? `อื่นๆ: ${state.locationOther}` : state.location;
-        const transferValue = state.transferDestination === 'อื่นๆ' ? `อื่นๆ: ${state.transferDestinationOther}` : state.transferDestination;
-
-        const recordId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-        const record = {
-            id: recordId,
-            hn: state.hn.trim() || 'ไม่ระบุ',
-            location: locationValue || 'ไม่ระบุ',
-            ageGroup: state.ageGroup,
-            temperatureValue: state.temperatureValue || 'ไม่ระบุ',
-            temperatureScore: temperature,
-            behaviorScore: behavior,
-            cardiovascularScore: cardiovascular,
-            respiratoryScore: respiratory,
-            additionalRisk: state.additionalRisk,
-            totalScore: total,
-            nursingNotes: state.nursingNotes,
-            symptomsChanged: state.symptomsChanged,
-            action: action,
-            transferDestination: transferValue || '',
-            prValue: state.prValue || 'ไม่ระบุ',
-            rrValue: state.rrValue || 'ไม่ระบุ',
-            skinColor: state.skinColor || 'ไม่ระบุ',
-            crt: state.crt || 'ไม่ระบุ',
-            retraction: state.retraction || 'ไม่ระบุ',
-            fio2: state.fio2 || 'ไม่ระบุ',
-            o2: state.o2 || 'ไม่ระบุ',
-            bloodPressure: state.bloodPressure || 'ไม่ระบุ',
-            spo2: state.spo2 || 'ไม่ระบุ',
-            chdType: state.chdType || '',
-            palsEnabled: state.palsEnabled,
-            parentRecordId: state.parentRecordId,
-            isReassessment: state.isReassessment,
-            createdAt: new Date().toISOString()
-        };
-
-        state.records.unshift(record);
-        saveRecords();
-        renderRecords();
-
-        await submitToGoogleForm(record);
-
-        alert(`บันทึกสำเร็จ\nบันทึกข้อมูลผู้ป่วย HN: ${record.hn} เรียบร้อยแล้ว`);
-        resetForm();
-
-    } catch (error) {
-        console.error('❌ เกิดข้อผิดพลาดในการบันทึก:', error);
-        alert('เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่อีกครั้ง');
-    } finally {
-        if (transferBtn) {
-            transferBtn.disabled = false;
-            transferBtn.innerHTML = originalBtnText;
-            transferBtn.style.opacity = '1';
-            transferBtn.style.cursor = 'pointer';
-        }
-
-        setTimeout(() => {
-            isSavingRecord = false;
-        }, 1500);
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
     }
 }
 
-function formatDateTime(isoString) {
-    const date = new Date(isoString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+.transfer-section:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 35px rgba(251, 146, 60, 0.3),
+                0 6px 15px rgba(251, 146, 60, 0.15),
+                inset 0 -2px 10px rgba(255, 255, 255, 0.6);
 }
 
-function renderRecords() {
-    const container = document.getElementById('records-list');
-    if (!state.records || state.records.length === 0) {
-        container.innerHTML = `
-            <div class="empty-records">
-                <div class="empty-icon">📋</div>
-                <p class="empty-title">ยังไม่มีประวัติการบันทึก</p>
-                <p class="empty-description">เมื่อคุณบันทึกข้อมูลผู้ป่วย ประวัติจะแสดงที่นี่</p>
-            </div>
-        `;
-        return;
-    }
-
-    container.innerHTML = state.records.map((record) => {
-        const ageGroup = ageGroups.find(a => a.id === record.ageGroup);
-        const ageText = ageGroup ? `${ageGroup.name} (${ageGroup.ageRange})` : 'ไม่ระบุ';
-        const isReassessment = record.isReassessment;
-        const parentRecord = isReassessment ? state.records.find(r => r.id === record.parentRecordId) : null;
-
-        let comparisonHTML = '';
-        if (isReassessment && parentRecord) {
-            const comparisonRiskLevel = getRiskLevel(record.totalScore);
-            const comparisonColorClass = comparisonRiskLevel === 'low' ? 'score-green' :
-                                        comparisonRiskLevel === 'medium' ? 'score-yellow' :
-                                        comparisonRiskLevel === 'orange' ? 'score-orange' : 'score-red';
-            
-            comparisonHTML = `
-                <div class="comparison-container ${comparisonColorClass}">
-                    <h4>📊 เปรียบเทียบผลการประเมิน</h4>
-                    <div class="comparison-grid">
-                        <div class="comparison-column">
-                            <div class="comparison-header">
-                                <span class="comparison-badge">1</span>
-                                <div>
-                                    <div class="comparison-title">ครั้งที่ 1</div>
-                                    <div class="comparison-time">${formatDateTime(parentRecord.createdAt)}</div>
-                                </div>
-                            </div>
-                            <div class="comparison-data">
-                                <div class="data-item">
-                                    <span class="data-label">คะแนนรวม</span>
-                                    <span class="data-value score-value">${parentRecord.totalScore}</span>
-                                </div>
-                                <div class="data-item">
-                                    <span class="data-label">Temp</span>
-                                    <span class="data-value">${parentRecord.temperatureValue} °C</span>
-                                </div>
-                                <div class="data-item">
-                                    <span class="data-label">PR</span>
-                                    <span class="data-value">${parentRecord.prValue} bpm</span>
-                                </div>
-                                <div class="data-item">
-                                    <span class="data-label">RR</span>
-                                    <span class="data-value">${parentRecord.rrValue} tpm</span>
-                                </div>
-                                <div class="data-item">
-                                    <span class="data-label">BP</span>
-                                    <span class="data-value">${parentRecord.bloodPressure}</span>
-                                </div>
-                                <div class="data-item">
-                                    <span class="data-label">SpO₂</span>
-                                    <span class="data-value">${parentRecord.spo2}%</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="comparison-arrow">→</div>
-
-                        <div class="comparison-column highlight">
-                            <div class="comparison-header">
-                                <span class="comparison-badge">2</span>
-                                <div>
-                                    <div class="comparison-title">ครั้งที่ 2 (ประเมินซ้ำ)</div>
-                                    <div class="comparison-time">${formatDateTime(record.createdAt)}</div>
-                                </div>
-                            </div>
-                            <div class="comparison-data">
-                                <div class="data-item ${record.totalScore !== parentRecord.totalScore ? 'changed' : ''}">
-                                    <span class="data-label">คะแนนรวม</span>
-                                    <span class="data-value score-value">${record.totalScore}</span>
-                                </div>
-                                <div class="data-item ${record.temperatureValue !== parentRecord.temperatureValue ? 'changed' : ''}">
-                                    <span class="data-label">Temp</span>
-                                    <span class="data-value">${record.temperatureValue} °C</span>
-                                </div>
-                                <div class="data-item ${record.prValue !== parentRecord.prValue ? 'changed' : ''}">
-                                    <span class="data-label">PR</span>
-                                    <span class="data-value">${record.prValue} bpm</span>
-                                </div>
-                                <div class="data-item ${record.rrValue !== parentRecord.rrValue ? 'changed' : ''}">
-                                    <span class="data-label">RR</span>
-                                    <span class="data-value">${record.rrValue} tpm</span>
-                                </div>
-                                <div class="data-item ${record.bloodPressure !== parentRecord.bloodPressure ? 'changed' : ''}">
-                                    <span class="data-label">BP</span>
-                                    <span class="data-value">${record.bloodPressure}</span>
-                                </div>
-                                <div class="data-item ${record.spo2 !== parentRecord.spo2 ? 'changed' : ''}">
-                                    <span class="data-label">SpO₂</span>
-                                    <span class="data-value">${record.spo2}%</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        const riskLevel = getRiskLevel(record.totalScore);
-        const scoreColorClass = riskLevel === 'low' ? 'score-green' :
-                                riskLevel === 'medium' ? 'score-yellow' :
-                                riskLevel === 'orange' ? 'score-orange' : 'score-red';
-
-        return `
-            <div class="record-card">
-                <div class="record-header">
-                    <div>
-                        <strong>HN:</strong> ${record.hn}
-                        ${isReassessment ? '<span class="reassessment-badge">ประเมินซ้ำ</span>' : ''}
-                    </div>
-                    <div class="record-date">${formatDateTime(record.createdAt)}</div>
-                </div>
-
-                <div class="record-details">
-                    <div class="detail-row">
-                        <span class="detail-label">สถานที่:</span>
-                        <span>${record.location}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">ช่วงอายุ:</span>
-                        <span>${ageText}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">คะแนนรวม:</span>
-                        <span class="total-score-badge ${scoreColorClass}">${record.totalScore}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">การดำเนินการ:</span>
-                        <span class="action-badge">${record.action}</span>
-                    </div>
-                    ${record.nursingNotes ? `
-                    <div class="detail-row">
-                        <span class="detail-label">การพยาบาล:</span>
-                        <span>${record.nursingNotes}</span>
-                    </div>
-                    ` : ''}
-                    ${record.transferDestination ? `
-                    <div class="detail-row">
-                        <span class="detail-label">ส่งต่อไปที่:</span>
-                        <span class="transfer-badge">${record.transferDestination}</span>
-                    </div>
-                    ` : ''}
-                    ${record.chdType ? `
-                    <div class="detail-row">
-                        <span class="detail-label">CHD:</span>
-                        <span class="chd-badge">${record.chdType === 'acyanotic' ? '○ Acyanotic CHD' : '● Cyanotic CHD'}</span>
-                    </div>
-                    ` : ''}
-                    ${record.palsEnabled ? `
-                    <div class="detail-row">
-                        <span class="detail-label">PALS:</span>
-                        <span class="pals-badge">PALS</span>
-                    </div>
-                    ` : ''}
-                </div>
-
-                <div class="vital-signs-summary">
-                    <h4>📊 สัญญาณชีพที่ประเมิน</h4>
-                    <div class="vital-signs-summary-grid">
-                        <div class="vital-summary-item">
-                            <span class="vital-summary-label">Temp:</span>
-                            <span class="vital-summary-value">${record.temperatureValue} °C</span>
-                        </div>
-                        <div class="vital-summary-item">
-                            <span class="vital-summary-label">PR:</span>
-                            <span class="vital-summary-value">${record.prValue} bpm</span>
-                        </div>
-                        <div class="vital-summary-item">
-                            <span class="vital-summary-label">RR:</span>
-                            <span class="vital-summary-value">${record.rrValue} tpm</span>
-                        </div>
-                        <div class="vital-summary-item">
-                            <span class="vital-summary-label">BP:</span>
-                            <span class="vital-summary-value">${record.bloodPressure} mmHg</span>
-                        </div>
-                        <div class="vital-summary-item">
-                            <span class="vital-summary-label">SpO₂:</span>
-                            <span class="vital-summary-value">${record.spo2}%</span>
-                        </div>
-                    </div>
-                </div>
-
-                ${comparisonHTML}
-
-                <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
-                    ${!isReassessment ? `
-                        <button class="reassess-btn" onclick="startReassessment('${record.id}')">
-                            🔄 ประเมินซ้ำ
-                        </button>
-                    ` : ''}
-                    <button class="delete-btn" onclick="deleteRecord('${record.id}')">
-                        🗑️ ลบ
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
+.transfer-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    z-index: 1;
+    flex-wrap: wrap;
 }
 
-function startReassessment(recordId) {
-    const record = state.records.find(r => r.id === recordId);
-    if (!record) {
-        alert('ไม่พบข้อมูลการบันทึก');
-        return;
-    }
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    state.parentRecordId = recordId;
-    state.isReassessment = true;
-    state.hn = record.hn;
-    state.location = record.location;
-    state.ageGroup = record.ageGroup;
-
-    document.getElementById('hn-input-top').value = record.hn;
-    document.getElementById('location-select').value = record.location.includes('อื่นๆ') ? 'อื่นๆ' : record.location;
-
-    selectAge(record.ageGroup);
-
-    const formTitle = document.querySelector('h1');
-    if (formTitle && !formTitle.innerHTML.includes('ประเมินซ้ำ')) {
-        formTitle.innerHTML = formTitle.innerHTML + ' <span style="background: #fbbf24; color: white; padding: 0.25rem 0.75rem; border-radius: 0.5rem; margin-left: 0.5rem; font-size: 1rem;">กำลังประเมินซ้ำ</span>';
-    }
-
-    alert(`กำลังประเมินซ้ำสำหรับ HN: ${record.hn}\nกรุณากรอกข้อมูลใหม่และบันทึก`);
+.transfer-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    box-shadow: 0 8px 20px rgba(249, 115, 22, 0.4),
+                inset 0 2px 4px rgba(255, 255, 255, 0.3);
+    animation: iconBounce 2s ease-in-out infinite;
+    flex-shrink: 0;
 }
 
-function resetForm() {
-    state.ageGroup = null;
-    state.temperatureValue = '';
-    state.temperatureScore = null;
-    state.behaviorScore = null;
-    state.cardiovascularScore = null;
-    state.respiratoryScore = null;
-    state.additionalRisk = false;
-    state.hn = '';
-    state.location = '';
-    state.locationOther = '';
-    state.nursingNotes = '';
-    state.symptomsChanged = 'no';
-    state.transferDestination = '';
-    state.transferDestinationOther = '';
-    state.prValue = '';
-    state.rrValue = '';
-    state.skinColor = '';
-    state.crt = '';
-    state.retraction = '';
-    state.fio2 = '';
-    state.o2 = '';
-    state.bloodPressure = '';
-    state.spo2 = '';
-    state.chdType = '';
-    state.palsEnabled = false;
-    state.parentRecordId = null;
-    state.isReassessment = false;
-
-    document.getElementById('hn-input-top').value = '';
-    document.getElementById('location-select').value = '';
-    document.getElementById('location-other').value = '';
-    document.getElementById('location-other').style.display = 'none';
-    document.getElementById('nursing-notes').value = '';
-    document.getElementById('transfer-destination-select').value = '';
-    document.getElementById('transfer-destination-other').value = '';
-    document.getElementById('transfer-destination-other').style.display = 'none';
-    document.getElementById('additional-risk').checked = false;
-    document.getElementById('age-error').style.display = 'none';
-
-    const formTitle = document.querySelector('h1');
-    if (formTitle) {
-        formTitle.innerHTML = formTitle.innerHTML.replace(/<span style="background: #fbbf24.*?<\/span>/, '');
+@keyframes iconBounce {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
     }
-
-    const tempInput = document.getElementById('temp-input');
-    const prInput = document.getElementById('pr-input');
-    const rrInput = document.getElementById('rr-input');
-    const spo2Input = document.getElementById('spo2-input');
-    const bpInput = document.getElementById('bp-input');
-
-    if (tempInput) tempInput.value = '';
-    if (prInput) prInput.value = '';
-    if (rrInput) rrInput.value = '';
-    if (spo2Input) spo2Input.value = '';
-    if (bpInput) bpInput.value = '';
-
-    document.getElementById('chd-selected').style.display = 'none';
-
-    const palsBtn = document.getElementById('pals-button');
-    if (palsBtn) {
-        palsBtn.classList.remove('active');
-    }
-
-    document.getElementById('temp-input-container').style.display = 'none';
-    document.getElementById('cardiovascular-input-container').style.display = 'none';
-    document.getElementById('respiratory-input-container').style.display = 'none';
-    document.getElementById('temperature-warning').style.display = 'block';
-    document.getElementById('cardiovascular-warning').style.display = 'block';
-    document.getElementById('respiratory-warning').style.display = 'block';
-
-    const cardioHeader = document.querySelector('#cardiovascular-section .section-header h2');
-    if (cardioHeader) {
-        cardioHeader.innerHTML = 'ระบบไหลเวียนโลหิต (Cardiovascular)';
-    }
-
-    const respHeader = document.querySelector('#respiratory-section .section-header h2');
-    if (respHeader) {
-        respHeader.innerHTML = 'ระบบทางเดินหายใจ (Respiratory)';
-    }
-
-    document.querySelectorAll('.symptom-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.value === 'no');
-    });
-
-    document.querySelectorAll('.age-button').forEach(btn => btn.classList.remove('selected'));
-    document.querySelectorAll('.score-button').forEach(btn => btn.classList.remove('selected'));
-    document.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('selected'));
-    document.querySelectorAll('.score-display-item').forEach(item => item.classList.remove('selected'));
-
-    updateTotalScore();
-}
-
-function deleteRecord(id) {
-    if (confirm('ต้องการลบรายการนี้หรือไม่?')) {
-        state.records = state.records.filter(r => r.id !== id);
-        saveRecords();
-        renderRecords();
-        alert('ลบสำเร็จ');
+    50% {
+        transform: translateY(-5px) rotate(5deg);
     }
 }
 
-function loadRecords() {
-    const saved = localStorage.getItem('pewsRecords');
-    if (saved) {
-        try {
-            state.records = JSON.parse(saved);
-        } catch (e) {
-            console.error('Error loading records:', e);
-        }
+.transfer-header h4 {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #7c2d12;
+    margin: 0;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.transfer-header p {
+    font-size: 0.875rem;
+    color: #9a3412;
+    margin: 0.25rem 0 0 0;
+}
+
+.transfer-select {
+    width: 100%;
+    font-size: 1.125rem;
+    font-weight: 600;
+    border: 3px solid #fb923c;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    background: white;
+    color: #7c2d12;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 4px 10px rgba(251, 146, 60, 0.2),
+                inset 0 2px 4px rgba(255, 255, 255, 0.5);
+}
+
+.transfer-select:hover {
+    border-color: #f97316;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(251, 146, 60, 0.3),
+                inset 0 2px 4px rgba(255, 255, 255, 0.6);
+}
+
+.transfer-select:focus {
+    outline: none;
+    border-color: #ea580c;
+    box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.2),
+                0 6px 15px rgba(251, 146, 60, 0.3);
+    transform: translateY(-2px) scale(1.01);
+}
+
+.transfer-other-input {
+    width: 100%;
+    font-size: 1rem;
+    font-weight: 600;
+    border: 3px solid #fb923c;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-top: 1rem;
+    background: white;
+    color: #7c2d12;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(251, 146, 60, 0.2),
+                inset 0 2px 4px rgba(255, 255, 255, 0.5);
+    animation: slideDown 0.3s ease-out;
+    position: relative;
+    z-index: 10;
+}
+
+.transfer-other-input:focus {
+    outline: none;
+    border-color: #ea580c;
+    box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.2),
+                0 6px 15px rgba(251, 146, 60, 0.3);
+    transform: scale(1.01);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
-function saveRecords() {
-    localStorage.setItem('pewsRecords', JSON.stringify(state.records));
+/* Patient Form */
+.patient-form h3 {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #1f2937;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.symptoms-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.symptom-btn {
+    flex: 1;
+    min-width: 100px;
+    padding: 1.25rem;
+    border: 2px solid #d1d5db;
+    border-radius: 0.5rem;
+    background: white;
+    font-weight: 600;
+    font-size: 1.125rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.symptom-btn:hover {
+    border-color: #9ca3af;
+}
+
+.symptom-btn.active[data-value="yes"] {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    border-color: #dc2626;
+    color: white;
+}
+
+.symptom-btn.active[data-value="no"] {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-color: #059669;
+    color: white;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    flex: 1;
+    min-width: 150px;
+    padding: 1.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: white;
+}
+
+.btn-transfer {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+}
+
+.btn-transfer:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(249, 115, 22, 0.3);
+}
+
+.btn-reset {
+    background: white;
+    color: #1f2937;
+    border: 2px solid #d1d5db;
+}
+
+.btn-reset:hover {
+    border-color: #9ca3af;
+    transform: translateY(-2px);
+}
+
+/* Records History */
+.records-history {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 2px solid #e5e7eb;
+}
+
+.records-history h3 {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #1f2937;
+    margin-bottom: 1.5rem;
+}
+
+.record-card {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.record-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+    font-weight: 600;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.record-date {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.record-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 0.75rem;
+}
+
+.detail-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: #374151;
+}
+
+/* Vital Signs Summary */
+.vital-signs-summary {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border: 2px solid #7dd3fc;
+    border-radius: 0.5rem;
+}
+
+.vital-signs-summary h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #0c4a6e;
+    margin-bottom: 0.75rem;
+}
+
+.vital-signs-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.75rem;
+}
+
+.vital-summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.5rem;
+    background: white;
+    border-radius: 0.375rem;
+    border: 1px solid #bae6fd;
+}
+
+.vital-summary-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.vital-summary-value {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #0c4a6e;
+}
+
+/* Score Color Badges */
+.total-score-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+}
+
+.total-score-badge.score-green {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.total-score-badge.score-yellow {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    color: white;
+}
+
+.total-score-badge.score-orange {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    color: white;
+}
+
+.total-score-badge.score-red {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+}
+
+.transfer-badge {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+}
+
+/* CHD Button */
+.chd-button {
+    padding: 0.75rem 1.25rem;
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.chd-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.chd-selected {
+    padding: 1rem;
+    background: #f5f3ff;
+    border: 2px solid #c4b5fd;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.chd-badge {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+/* PALS Button */
+.pals-button {
+    padding: 0.625rem 1.5rem;
+    background: #c0c0c0;
+    color: white;
+    border: 2px solid #9ca3af;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: 0.5rem;
+    transition: all 0.3s;
+}
+
+.pals-button.active {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border-color: #1d4ed8;
+}
+
+.pals-badge {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 100%;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.modal-header h2 {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: #6b7280;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: #1f2937;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.chd-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.chd-option-btn {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.75rem;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.chd-option-btn:hover {
+    border-color: #8b5cf6;
+    background: #f5f3ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+}
+
+.chd-icon {
+    font-size: 2rem;
+    color: #8b5cf6;
+}
+
+.chd-text {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+/* Record Action Buttons */
+.reassess-btn {
+    padding: 0.75rem 1.25rem;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.reassess-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.delete-btn {
+    padding: 0.75rem 1.25rem;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.delete-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* Reassessment Badge */
+.reassessment-badge {
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 0.75rem;
+    margin-left: 0.5rem;
+}
+
+/* Empty Records */
+.empty-records {
+    text-align: center;
+    padding: 2rem;
+    color: #6b7280;
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.empty-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.empty-description {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+/* Comparison Container */
+.comparison-container {
+    margin-top: 1.5rem;
+    padding: 2rem;
+    border-radius: 1rem;
+    background: white;
+    border: 3px solid #e5e7eb;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.comparison-container.score-green {
+    background: linear-gradient(135deg, rgba(220, 252, 231, 0.3) 0%, rgba(187, 247, 208, 0.3) 100%);
+    border-color: #86efac;
+}
+
+.comparison-container.score-yellow {
+    background: linear-gradient(135deg, rgba(254, 249, 195, 0.3) 0%, rgba(254, 240, 138, 0.3) 100%);
+    border-color: #fde047;
+}
+
+.comparison-container.score-orange {
+    background: linear-gradient(135deg, rgba(254, 215, 170, 0.3) 0%, rgba(253, 186, 116, 0.3) 100%);
+    border-color: #fb923c;
+}
+
+.comparison-container.score-red {
+    background: linear-gradient(135deg, rgba(254, 226, 226, 0.3) 0%, rgba(254, 202, 202, 0.3) 100%);
+    border-color: #fca5a5;
+}
+
+.comparison-container h4 {
+    font-size: 1.125rem;
+    font-weight: bold;
+    color: #1f2937;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.comparison-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.comparison-column {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.comparison-column.highlight {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.2);
+}
+
+.comparison-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.comparison-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+}
+
+.comparison-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.comparison-time {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+}
+
+.comparison-arrow {
+    font-size: 2rem;
+    color: #3b82f6;
+    font-weight: bold;
+    text-align: center;
+}
+
+.comparison-data {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.data-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: #f9fafb;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+}
+
+.data-item.changed {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px solid #fbbf24;
+    font-weight: 600;
+    animation: highlight-pulse 2s ease-in-out infinite;
+}
+
+@keyframes highlight-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(251, 191, 36, 0);
+    }
+}
+
+.data-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.data-item.changed .data-label {
+    color: #92400e;
+}
+
+.data-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.data-item.changed .data-value {
+    color: #92400e;
+}
+
+.data-value.score-value {
+    font-size: 1.25rem;
+    color: #2563eb;
+}
+
+.data-item.changed .data-value.score-value {
+    color: #ea580c;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    body {
+        padding: 1rem 0.5rem;
+    }
+
+    .header {
+        padding: 1.5rem;
+    }
+
+    .header h1 {
+        font-size: 1.75rem;
+    }
+
+    .main-card {
+        padding: 1.5rem;
+    }
+
+    .age-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .score-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cardio-inputs-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .score-buttons-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .symptoms-buttons {
+        flex-direction: column;
+    }
+
+    .symptom-btn {
+        min-width: auto;
+    }
+
+    .transfer-section {
+        padding: 1.5rem;
+    }
+
+    .transfer-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+
+    .total-score-number {
+        font-size: 3rem;
+    }
+
+    .total-score-breakdown {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .breakdown-item.additional {
+        grid-column: span 2;
+    }
+
+    .comparison-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .comparison-arrow {
+        transform: rotate(90deg);
+    }
+}
+
+@media (max-width: 480px) {
+    .record-details {
+        grid-template-columns: 1fr;
+    }
+
+    .vital-signs-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
