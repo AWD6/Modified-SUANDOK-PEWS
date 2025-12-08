@@ -50,9 +50,9 @@
             <section class="scoring-section" id="temperature-section">
                 <div class="section-header">
                     <div class="badge badge-orange">1</div>
-                    <h2>อุณหภูมิร่างกาย (Temp)</h2>
+                    <h2>อุณหภูมิร่างกาย (Temperature)</h2>
                 </div>
-                <div id="temperature-warning" class="warning-message" style="display: none">
+                <div id="temperature-warning" class="warning-message">
                     กรุณาเลือกช่วงอายุเพื่อกรอกอุณหภูมิ
                 </div>
                 <div id="temp-input-container" class="input-section" style="display: none">
@@ -61,10 +61,19 @@
                         <input type="number" id="temp-input" placeholder="°C" min="30" max="45" step="0.1" />
                         <span class="unit-text">°C</span>
                     </div>
-                    <div class="option-buttons" id="temp-options">
-                        <button class="option-btn" data-score="0">≤ 37.9 °C (0)</button>
-                        <button class="option-btn" data-score="1">38.0 - 38.9 °C (1)</button>
-                        <button class="option-btn" data-score="2">≥ 39 °C (2)</button>
+                    <div class="score-display-grid" id="temp-score-display">
+                        <div class="score-display-item" data-score="0">
+                            <div class="score-display-label">≤ 37.9 °C</div>
+                            <div class="score-display-value">0</div>
+                        </div>
+                        <div class="score-display-item" data-score="1">
+                            <div class="score-display-label">38.0 - 38.9 °C</div>
+                            <div class="score-display-value">1</div>
+                        </div>
+                        <div class="score-display-item" data-score="2">
+                            <div class="score-display-label">≥ 39 °C</div>
+                            <div class="score-display-value">2</div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -72,7 +81,7 @@
             <section class="scoring-section">
                 <div class="section-header">
                     <div class="badge badge-blue">2</div>
-                    <h2>พฤติกรรม</h2>
+                    <h2>พฤติกรรม (Behavior)</h2>
                 </div>
                 <div class="score-grid" id="behavior-grid"></div>
             </section>
@@ -80,13 +89,13 @@
             <section class="scoring-section" id="cardiovascular-section">
                 <div class="section-header">
                     <div class="badge badge-red">3</div>
-                    <h2>ระบบไหลเวียนโลหิต</h2>
+                    <h2>ระบบไหลเวียนโลหิต (Cardiovascular)</h2>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
                     <button id="chd-btn" class="chd-button" type="button">Congenital heart disease</button>
                 </div>
                 <div id="chd-selected" class="chd-selected" style="display: none;"></div>
-                <div id="cardiovascular-warning" class="warning-message" style="display: none">
+                <div id="cardiovascular-warning" class="warning-message">
                     กรุณาเลือกช่วงอายุเพื่อดูเกณฑ์การประเมินที่เหมาะสม
                 </div>
                 <div id="cardiovascular-input-container" class="input-section" style="display: none">
@@ -117,11 +126,23 @@
                         <input type="text" id="bp-input" placeholder="กรอก BP (###/##)" maxlength="7" />
                         <span class="unit-text">mmHg</span>
                     </div>
-                    <div class="option-buttons" id="cardiovascular-score-display">
-                        <button class="option-btn" data-score="0">คะแนน 0</button>
-                        <button class="option-btn" data-score="1">คะแนน 1</button>
-                        <button class="option-btn" data-score="2">คะแนน 2</button>
-                        <button class="option-btn" data-score="3">คะแนน 3</button>
+                    <div class="score-display-grid" id="cardiovascular-score-display">
+                        <div class="score-display-item" data-score="0">
+                            <div class="score-display-label">ปกติ / ผิวชมพู / CRT 1-2 วินาที</div>
+                            <div class="score-display-value">0</div>
+                        </div>
+                        <div class="score-display-item" data-score="1">
+                            <div class="score-display-label">ผิวซีด / CRT 3 วินาที</div>
+                            <div class="score-display-value">1</div>
+                        </div>
+                        <div class="score-display-item" data-score="2">
+                            <div class="score-display-label">ผิวเทา / CRT ≥ 4 วินาที</div>
+                            <div class="score-display-value">2</div>
+                        </div>
+                        <div class="score-display-item" data-score="3">
+                            <div class="score-display-label">ผิวเทาตัวลาย / ชีพจรผิดปกติมาก</div>
+                            <div class="score-display-value">3</div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -129,9 +150,9 @@
             <section class="scoring-section" id="respiratory-section">
                 <div class="section-header">
                     <div class="badge badge-purple-2">4</div>
-                    <h2>ระบบทางเดินหายใจ</h2>
+                    <h2>ระบบทางเดินหายใจ (Respiratory)</h2>
                 </div>
-                <div id="respiratory-warning" class="warning-message" style="display: none">
+                <div id="respiratory-warning" class="warning-message">
                     กรุณาเลือกช่วงอายุเพื่อดูเกณฑ์การประเมินที่เหมาะสม
                 </div>
                 <div id="respiratory-input-container" class="input-section" style="display: none">
@@ -170,11 +191,23 @@
                         <input type="number" id="spo2-input" placeholder="%" min="0" max="100" />
                         <span class="unit-text">%</span>
                     </div>
-                    <div class="option-buttons" id="respiratory-score-display">
-                        <button class="option-btn" data-score="0">คะแนน 0</button>
-                        <button class="option-btn" data-score="1">คะแนน 1</button>
-                        <button class="option-btn" data-score="2">คะแนน 2</button>
-                        <button class="option-btn" data-score="3">คะแนน 3</button>
+                    <div class="score-display-grid" id="respiratory-score-display">
+                        <div class="score-display-item" data-score="0">
+                            <div class="score-display-label">ปกติ / ไม่มี Retraction</div>
+                            <div class="score-display-value">0</div>
+                        </div>
+                        <div class="score-display-item" data-score="1">
+                            <div class="score-display-label">มี Retraction / FiO₂ ≥30% / O₂ ≥4</div>
+                            <div class="score-display-value">1</div>
+                        </div>
+                        <div class="score-display-item" data-score="2">
+                            <div class="score-display-label">FiO₂ ≥40% / O₂ ≥6</div>
+                            <div class="score-display-value">2</div>
+                        </div>
+                        <div class="score-display-item" data-score="3">
+                            <div class="score-display-label">FiO₂ ≥50% / O₂ ≥8 / SpO₂ < 95%</div>
+                            <div class="score-display-value">3</div>
+                        </div>
                     </div>
                 </div>
             </section>
