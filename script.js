@@ -148,9 +148,24 @@ document.addEventListener('DOMContentLoaded', function() {
     if (tempInput) {
         tempInput.addEventListener('input', (e) => {
             state.temperatureValue = e.target.value;
+            document.querySelectorAll('#temp-options .option-btn').forEach(btn => btn.classList.remove('selected'));
             calculateTemperatureScore();
         });
     }
+
+    // Temperature option buttons
+    document.querySelectorAll('#temp-options .option-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('#temp-options .option-btn').forEach(b => b.classList.remove('selected'));
+            this.classList.add('selected');
+            const tempValue = this.dataset.temp;
+            state.temperatureValue = tempValue;
+            if (tempInput) {
+                tempInput.value = tempValue;
+            }
+            calculateTemperatureScore();
+        });
+    });
 
     // PR input
     const prInput = document.getElementById('pr-input');
@@ -688,17 +703,41 @@ function updateTotalScore() {
 
     display.className = `total-score ${riskLevel}`;
     display.innerHTML = `
-        <div class="total-score-header">
-            ⚠ คะแนนรวม: <span class="total-score-number">${total}</span>
+        <div class="total-score-wrapper">
+            <div class="total-score-main">
+                <div class="total-score-content">
+                    <div class="total-score-label">คะแนนรวม PEWS</div>
+                    <div class="total-score-number">${total}</div>
+                </div>
+            </div>
+            <div class="total-score-breakdown">
+                <div class="breakdown-item">
+                    <span class="breakdown-label">Temp</span>
+                    <span class="breakdown-value">${temperature}</span>
+                </div>
+                <div class="breakdown-item">
+                    <span class="breakdown-label">พฤติกรรม</span>
+                    <span class="breakdown-value">${behavior}</span>
+                </div>
+                <div class="breakdown-item">
+                    <span class="breakdown-label">ไหลเวียน</span>
+                    <span class="breakdown-value">${cardiovascular}</span>
+                </div>
+                <div class="breakdown-item">
+                    <span class="breakdown-label">หายใจ</span>
+                    <span class="breakdown-value">${respiratory}</span>
+                </div>
+                ${additional > 0 ? `
+                <div class="breakdown-item additional">
+                    <span class="breakdown-label">เสี่ยง</span>
+                    <span class="breakdown-value">${additional}</span>
+                </div>
+                ` : ''}
+            </div>
+            <div class="total-score-recommendation">
+                <div class="recommendation-text">${recommendation}</div>
+            </div>
         </div>
-        <div class="total-score-breakdown">
-            <span class="score-item">Temp: ${temperature}</span>
-            <span class="score-item">พฤติกรรม: ${behavior}</span>
-            <span class="score-item">ไหลเวียน: ${cardiovascular}</span>
-            <span class="score-item">หายใจ: ${respiratory}</span>
-            ${additional > 0 ? `<span class="score-item">เสี่ยง: ${additional}</span>` : ''}
-        </div>
-        <div class="total-score-recommendation">${recommendation}</div>
     `;
     document.getElementById('nursing-notes').value = recommendation;
     state.nursingNotes = recommendation;
