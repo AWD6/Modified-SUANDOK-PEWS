@@ -153,18 +153,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Temperature score select buttons
-    document.querySelectorAll('#temp-score-buttons .score-select-btn').forEach(btn => {
+    // Temperature option buttons
+    document.querySelectorAll('#temp-options .option-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            document.querySelectorAll('#temp-score-buttons .score-select-btn').forEach(b => b.classList.remove('selected'));
+            document.querySelectorAll('#temp-options .option-btn').forEach(b => b.classList.remove('selected'));
             this.classList.add('selected');
-            const score = parseInt(this.dataset.score);
-            state.temperatureScore = score;
+            const tempValue = this.dataset.temp;
+            state.temperatureValue = tempValue;
             if (tempInput) {
-                tempInput.value = '';
+                tempInput.value = tempValue;
             }
-            state.temperatureValue = '';
-            updateTotalScore();
+            calculateTemperatureScore();
         });
     });
 
@@ -271,28 +270,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Cardiovascular score select buttons
-    document.querySelectorAll('#cardiovascular-score-buttons .score-select-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('#cardiovascular-score-buttons .score-select-btn').forEach(b => b.classList.remove('selected'));
-            this.classList.add('selected');
-            const score = parseInt(this.dataset.score);
-            state.cardiovascularScore = score;
-            updateTotalScore();
-        });
-    });
-
-    // Respiratory score select buttons
-    document.querySelectorAll('#respiratory-score-buttons .score-select-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('#respiratory-score-buttons .score-select-btn').forEach(b => b.classList.remove('selected'));
-            this.classList.add('selected');
-            const score = parseInt(this.dataset.score);
-            state.respiratoryScore = score;
-            updateTotalScore();
-        });
-    });
-
     document.getElementById('additional-risk').addEventListener('change', (e) => {
         state.additionalRisk = e.target.checked;
         updateTotalScore();
@@ -382,12 +359,13 @@ function calculateTemperatureScore() {
         } else if (temp >= 39) {
             score = 2;
         }
-        state.temperatureScore = score;
     }
 
-    // Update visual feedback on score buttons
-    document.querySelectorAll('#temp-score-buttons .score-select-btn').forEach(btn => {
-        btn.classList.toggle('selected', parseInt(btn.dataset.score) === state.temperatureScore);
+    state.temperatureScore = score;
+
+    // Update visual feedback
+    document.querySelectorAll('#temp-score-display .score-display-item').forEach(item => {
+        item.classList.toggle('selected', parseInt(item.dataset.score) === score);
     });
 
     updateTotalScore();
@@ -457,10 +435,57 @@ function calculateCardiovascularScore() {
 
     state.cardiovascularScore = finalScore;
 
-    // Update visual feedback on score buttons
-    document.querySelectorAll('#cardiovascular-score-buttons .score-select-btn').forEach(btn => {
-        btn.classList.toggle('selected', parseInt(btn.dataset.score) === finalScore);
-    });
+    // Update visual feedback with age-specific descriptions
+    const scoreDisplayContainer = document.getElementById('cardiovascular-score-display');
+    if (scoreDisplayContainer) {
+        let scoreDescriptions = [];
+
+        if (state.ageGroup === 'newborn' || state.ageGroup === 'infant') {
+            scoreDescriptions = [
+                { score: 0, label: 'PR ≤ 140 bpm ผิวสีชมพูดี หรือ CRT 1-2 วินาที' },
+                { score: 1, label: 'PR 141-149 bpm ผิวสีซีด หรือ CRT 3 วินาที' },
+                { score: 2, label: 'PR 150-159 bpm ผิวสีเทา หรือ CRT 4 วินาที' },
+                { score: 3, label: 'PR ≥ 160 bpm หรือ PR ≤ 79 bpm ผิวสีเทาและตัวลาย หรือ CRT ≥ 5 วินาที' }
+            ];
+        } else if (state.ageGroup === 'toddler') {
+            scoreDescriptions = [
+                { score: 0, label: 'PR ≤ 130 bpm ผิวสีชมพูดี หรือ CRT 1-2 วินาที' },
+                { score: 1, label: 'PR 131-139 bpm ผิวสีซีด หรือ CRT 3 วินาที' },
+                { score: 2, label: 'PR 140-149 bpm ผิวสีเทา หรือ CRT 4 วินาที' },
+                { score: 3, label: 'PR ≥ 150 bpm หรือ PR ≤ 69 bpm ผิวสีเทาและตัวลาย หรือ CRT ≥ 5 วินาที' }
+            ];
+        } else if (state.ageGroup === 'preschool') {
+            scoreDescriptions = [
+                { score: 0, label: 'PR ≤ 120 bpm ผิวสีชมพูดี หรือ CRT 1-2 วินาที' },
+                { score: 1, label: 'PR 121-129 bpm ผิวสีซีด หรือ CRT 3 วินาที' },
+                { score: 2, label: 'PR 130-139 bpm ผิวสีเทา หรือ CRT 4 วินาที' },
+                { score: 3, label: 'PR ≥ 140 bpm หรือ PR ≤ 69 bpm ผิวสีเทาและตัวลาย หรือ CRT ≥ 5 วินาที' }
+            ];
+        } else if (state.ageGroup === 'schoolage') {
+            scoreDescriptions = [
+                { score: 0, label: 'PR ≤ 110 bpm ผิวสีชมพูดี หรือ CRT 1-2 วินาที' },
+                { score: 1, label: 'PR 111-119 bpm ผิวสีซีด หรือ CRT 3 วินาที' },
+                { score: 2, label: 'PR 120-129 bpm ผิวสีเทา หรือ CRT 4 วินาที' },
+                { score: 3, label: 'PR ≥ 130 bpm หรือ PR ≤ 69 bpm ผิวสีเทาและตัวลาย หรือ CRT ≥ 5 วินาที' }
+            ];
+        } else if (state.ageGroup === 'adolescent') {
+            scoreDescriptions = [
+                { score: 0, label: 'PR ≤ 100 bpm ผิวสีชมพูดี หรือ CRT 1-2 วินาที' },
+                { score: 1, label: 'PR 111-119 bpm ผิวสีซีด หรือ CRT 3 วินาที' },
+                { score: 2, label: 'PR 120-129 bpm ผิวสีเทา หรือ CRT 4 วินาที' },
+                { score: 3, label: 'PR ≥ 130 bpm หรือ PR ≤ 59 bpm ผิวสีเทาและตัวลาย หรือ CRT ≥ 5 วินาที' }
+            ];
+        }
+
+        if (scoreDescriptions.length > 0) {
+            scoreDisplayContainer.innerHTML = scoreDescriptions.map(desc => `
+                <div class="score-display-item ${finalScore === desc.score ? 'selected' : ''}" data-score="${desc.score}">
+                    <div class="score-display-label">${desc.label}</div>
+                    <div class="score-display-value">${desc.score}</div>
+                </div>
+            `).join('');
+        }
+    }
 
     updateTotalScore();
 }
@@ -529,10 +554,43 @@ function calculateRespiratoryScore() {
 
     state.respiratoryScore = finalScore;
 
-    // Update visual feedback on score buttons
-    document.querySelectorAll('#respiratory-score-buttons .score-select-btn').forEach(btn => {
-        btn.classList.toggle('selected', parseInt(btn.dataset.score) === finalScore);
-    });
+    // Update visual feedback with age-specific descriptions
+    const scoreDisplayContainer = document.getElementById('respiratory-score-display');
+    if (scoreDisplayContainer) {
+        let scoreDescriptions = [];
+
+        if (state.ageGroup === 'newborn' || state.ageGroup === 'infant') {
+            scoreDescriptions = [
+                { score: 0, label: 'RR ≤ 50 tpm/ไม่มี Retraction' },
+                { score: 1, label: 'RR 51-59 tpm หรือมี Retraction หรือ FiO₂ ≥ 30% หรือ O₂ ≥ 4 LPM' },
+                { score: 2, label: 'RR 60-69 tpm หรือมี Retraction หรือ FiO₂ ≥ 40% หรือ O₂ ≥ 6 LPM' },
+                { score: 3, label: 'RR ≤ 30 tpm หรือมี Retraction/Grunting หรือ FiO₂ ≥ 50% หรือ O₂ ≥ 8 LPM หรือ SpO₂ < 95%' }
+            ];
+        } else if (state.ageGroup === 'toddler') {
+            scoreDescriptions = [
+                { score: 0, label: 'RR ≤ 40 tpm/ไม่มี Retraction' },
+                { score: 1, label: 'RR 41-49 tpm หรือมี Retraction หรือ FiO₂ ≥ 30% หรือ O₂ ≥ 4 LPM' },
+                { score: 2, label: 'RR 50-59 tpm หรือมี Retraction หรือ FiO₂ ≥ 40% หรือ O₂ ≥ 6 LPM' },
+                { score: 3, label: 'RR ≤ 20 tpm หรือมี Retraction/Grunting หรือ FiO₂ ≥ 50% หรือ O₂ ≥ 8 LPM หรือ SpO₂ < 95%' }
+            ];
+        } else if (state.ageGroup === 'preschool' || state.ageGroup === 'schoolage' || state.ageGroup === 'adolescent') {
+            scoreDescriptions = [
+                { score: 0, label: 'RR ≤ 30 tpm/ไม่มี Retraction' },
+                { score: 1, label: 'RR 31-39 tpm หรือมี Retraction หรือ FiO₂ ≥ 30% หรือ O₂ ≥ 4 LPM' },
+                { score: 2, label: 'RR 40-49 tpm หรือมี Retraction หรือ FiO₂ ≥ 40% หรือ O₂ ≥ 6 LPM' },
+                { score: 3, label: 'RR ≤ 16 tpm หรือมี Retraction/Grunting หรือ FiO₂ ≥ 50% หรือ O₂ ≥ 8 LPM หรือ SpO₂ < 95%' }
+            ];
+        }
+
+        if (scoreDescriptions.length > 0) {
+            scoreDisplayContainer.innerHTML = scoreDescriptions.map(desc => `
+                <div class="score-display-item ${finalScore === desc.score ? 'selected' : ''}" data-score="${desc.score}">
+                    <div class="score-display-label">${desc.label}</div>
+                    <div class="score-display-value">${desc.score}</div>
+                </div>
+            `).join('');
+        }
+    }
 
     updateTotalScore();
 }
@@ -929,13 +987,8 @@ function renderRecords() {
 
         let comparisonHTML = '';
         if (isReassessment && parentRecord) {
-            const comparisonRiskLevel = getRiskLevel(record.totalScore);
-            const comparisonColorClass = comparisonRiskLevel === 'low' ? 'score-green' :
-                                        comparisonRiskLevel === 'medium' ? 'score-yellow' :
-                                        comparisonRiskLevel === 'orange' ? 'score-orange' : 'score-red';
-            
             comparisonHTML = `
-                <div class="comparison-container ${comparisonColorClass}">
+                <div class="comparison-container">
                     <h4>📊 เปรียบเทียบผลการประเมิน</h4>
                     <div class="comparison-grid">
                         <div class="comparison-column">
@@ -1044,7 +1097,10 @@ function renderRecords() {
                         <span class="detail-label">คะแนนรวม:</span>
                         <span class="total-score-badge ${scoreColorClass}">${record.totalScore}</span>
                     </div>
-                    
+                    <div class="detail-row">
+                        <span class="detail-label">การดำเนินการ:</span>
+                        <span class="action-badge">${record.action}</span>
+                    </div>
                     ${record.nursingNotes ? `
                     <div class="detail-row">
                         <span class="detail-label">การพยาบาล:</span>
