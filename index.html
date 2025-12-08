@@ -61,6 +61,14 @@
                         <input type="number" id="temp-input" placeholder="°C" min="30" max="45" step="0.1" />
                         <span class="unit-text">°C</span>
                     </div>
+                    <div class="selector-row">
+                        <label>หรือเลือกช่วงอุณหภูมิ:</label>
+                        <div class="option-buttons" id="temp-options">
+                            <button class="option-btn" data-temp="37">≤ 37.9 °C</button>
+                            <button class="option-btn" data-temp="38.5">38.0 - 38.9 °C</button>
+                            <button class="option-btn" data-temp="39">≥ 39 °C</button>
+                        </div>
+                    </div>
                     <div class="score-display-grid" id="temp-score-display">
                         <div class="score-display-item" data-score="0">
                             <div class="score-display-label">≤ 37.9 °C</div>
@@ -104,18 +112,18 @@
                         <input type="number" id="pr-input" placeholder="ครั้ง/นาที" min="0" max="300" />
                         <span class="unit-text">ครั้ง/นาที</span>
                     </div>
-                    <div class="selector-row">
+                    <div class="input-row">
                         <label>สีผิว:</label>
-                        <div class="option-buttons" id="skin-color-options">
+                        <div class="option-buttons-inline" id="skin-color-options">
                             <button class="option-btn" data-value="pink">ผิวสีชมพูดี</button>
                             <button class="option-btn" data-value="pale">ผิวสีซีด</button>
                             <button class="option-btn" data-value="gray">ผิวสีเทา</button>
                             <button class="option-btn" data-value="mottled">ผิวสีเทาและตัวลาย</button>
                         </div>
                     </div>
-                    <div class="selector-row">
+                    <div class="input-row">
                         <label>CRT:</label>
-                        <div class="option-buttons" id="crt-options">
+                        <div class="option-buttons-inline" id="crt-options">
                             <button class="option-btn" data-value="1-2">CRT 1-2 วินาที</button>
                             <button class="option-btn" data-value="3">CRT 3 วินาที</button>
                             <button class="option-btn" data-value="4+">CRT ≥ 4 วินาที</button>
@@ -123,7 +131,7 @@
                     </div>
                     <div class="input-row">
                         <label for="bp-input">กรอก BP:</label>
-                        <input type="text" id="bp-input" placeholder="กรอก BP (###/##)" maxlength="7" />
+                        <input type="text" id="bp-input" placeholder="###/##" maxlength="7" />
                         <span class="unit-text">mmHg</span>
                     </div>
                     <div class="score-display-grid" id="cardiovascular-score-display">
@@ -161,25 +169,25 @@
                         <input type="number" id="rr-input" placeholder="ครั้ง/นาที" min="0" max="200" />
                         <span class="unit-text">ครั้ง/นาที</span>
                     </div>
-                    <div class="selector-row">
+                    <div class="input-row">
                         <label>Retraction:</label>
-                        <div class="option-buttons" id="retraction-options">
+                        <div class="option-buttons-inline" id="retraction-options">
                             <button class="option-btn" data-value="no">ไม่มี Retraction</button>
                             <button class="option-btn" data-value="yes">มี Retraction</button>
                         </div>
                     </div>
-                    <div class="selector-row">
+                    <div class="input-row">
                         <label>FiO₂:</label>
-                        <div class="option-buttons" id="fio2-options">
+                        <div class="option-buttons-inline" id="fio2-options">
                             <button class="option-btn" data-value="none">ไม่ใช้</button>
                             <button class="option-btn" data-value="30">FiO₂ ≥ 30%</button>
                             <button class="option-btn" data-value="40">FiO₂ ≥ 40%</button>
                             <button class="option-btn" data-value="50">FiO₂ ≥ 50%</button>
                         </div>
                     </div>
-                    <div class="selector-row">
+                    <div class="input-row">
                         <label>O₂:</label>
-                        <div class="option-buttons" id="o2-options">
+                        <div class="option-buttons-inline" id="o2-options">
                             <button class="option-btn" data-value="none">ไม่ใช้</button>
                             <button class="option-btn" data-value="4">O₂ ≥ 4 LPM</button>
                             <button class="option-btn" data-value="6">O₂ ≥ 6 LPM</button>
