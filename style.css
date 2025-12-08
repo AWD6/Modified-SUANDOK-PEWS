@@ -1,3 +1,4 @@
+
 * {
     margin: 0;
     padding: 0;
@@ -86,96 +87,6 @@ body {
     resize: vertical;
 }
 
-/* Vital Signs Section */
-.vital-signs-section {
-    margin-bottom: 2rem;
-    padding: 1.5rem;
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-    border: 2px solid #7dd3fc;
-    border-radius: 0.75rem;
-}
-
-.vital-signs-section h3 {
-    font-size: 1.125rem;
-    font-weight: bold;
-    color: #0c4a6e;
-    margin-bottom: 1rem;
-}
-
-.vital-signs-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-}
-
-.vital-input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.vital-input-group label {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #0c4a6e;
-}
-
-.vital-input-group input {
-    width: 100%;
-    font-size: 1rem;
-    font-weight: 600;
-    border: 2px solid #3b82f6;
-    border-radius: 0.5rem;
-    padding: 0.75rem;
-    text-align: center;
-    transition: all 0.2s;
-}
-
-.vital-input-group input:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
-    transform: scale(1.05);
-}
-
-/* Vital Input Container */
-.vital-input-container {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    padding: 1.25rem;
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-    border: 2px solid #7dd3fc;
-    border-radius: 0.75rem;
-    animation: slideDown 0.3s ease-out;
-    flex-wrap: wrap;
-}
-
-.vital-input-container label {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #0c4a6e;
-    margin: 0;
-    white-space: nowrap;
-}
-
-.vital-input-container input[type="number"] {
-    width: 120px;
-    font-size: 1rem;
-    font-weight: 600;
-    border: 2px solid #3b82f6;
-    border-radius: 0.5rem;
-    padding: 0.75rem;
-    text-align: center;
-}
-
-.vital-input-container .unit-text {
-    font-size: 0.875rem;
-    color: #475569;
-    font-weight: 500;
-}
-
 /* Scoring Section */
 .scoring-section {
     margin-bottom: 2.5rem;
@@ -227,6 +138,10 @@ body {
     background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
 }
 
+.badge-orange {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+}
+
 /* Error & Warning Messages */
 .error-message {
     margin-bottom: 1rem;
@@ -250,7 +165,7 @@ body {
     font-weight: 500;
 }
 
-/* Age Grid with Checkmark */
+/* Age Grid */
 .age-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -326,18 +241,7 @@ body {
     color: #6b7280;
 }
 
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Score Grid with Checkmark */
+/* Score Grid for Behavior */
 .score-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -404,6 +308,180 @@ body {
 }
 
 .score-value {
+    font-size: 1.75rem;
+    font-weight: bold;
+    color: #2563eb;
+}
+
+/* Input Section Styling */
+.input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Cardio Inputs Grid - สำหรับ Cardiovascular และ Respiratory */
+.cardio-inputs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.input-group label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.input-with-unit {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.input-group input[type="number"],
+.input-group input[type="text"] {
+    flex: 1;
+    font-size: 1rem;
+    font-weight: 600;
+    border: 2px solid #3b82f6;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+    transform: scale(1.02);
+}
+
+.unit-text {
+    font-size: 0.875rem;
+    color: #475569;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Option Buttons Compact */
+.option-buttons-compact {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.option-btn-compact {
+    flex: 1;
+    min-width: 60px;
+    padding: 0.625rem 1rem;
+    border: 2px solid #d1d5db;
+    border-radius: 0.5rem;
+    background: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.option-btn-compact:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    transform: translateY(-1px);
+}
+
+.option-btn-compact.selected {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+}
+
+/* Score Selection Row */
+.score-selection-row {
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 2px solid #cbd5e1;
+    border-radius: 0.75rem;
+}
+
+.score-selection-row > label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 1rem;
+}
+
+.score-buttons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+}
+
+.score-select-btn {
+    min-height: 90px;
+    border-radius: 0.75rem;
+    border: 2px solid #e5e7eb;
+    background: white;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.score-select-btn:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.score-select-btn.selected {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.score-select-btn.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    color: #3b82f6;
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+.score-select-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #475569;
+    text-align: center;
+    line-height: 1.3;
+}
+
+.score-select-btn.selected .score-select-label {
+    color: #1e40af;
+    font-weight: 600;
+}
+
+.score-select-value {
     font-size: 1.75rem;
     font-weight: bold;
     color: #2563eb;
@@ -480,6 +558,9 @@ body {
 .total-score-wrapper {
     position: relative;
     z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .total-score-main {
@@ -517,6 +598,7 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
     gap: 0.75rem;
     margin-bottom: 2rem;
+    width: 100%;
 }
 
 .breakdown-item {
@@ -562,6 +644,7 @@ body {
     background: rgba(255, 255, 255, 0.5);
     border-radius: 0.5rem;
     border: 1px solid rgba(0, 0, 0, 0.1);
+    width: 100%;
 }
 
 .recommendation-text {
@@ -722,6 +805,17 @@ body {
     transform: scale(1.01);
 }
 
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Patient Form */
 .patient-form h3 {
     font-size: 1.25rem;
@@ -786,15 +880,6 @@ body {
     cursor: pointer;
     transition: all 0.3s;
     color: white;
-}
-
-.btn-save {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-}
-
-.btn-save:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
 }
 
 .btn-transfer {
@@ -941,14 +1026,6 @@ body {
 .total-score-badge.score-red {
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     color: white;
-}
-
-.action-badge {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white;
-    padding: 0.25rem 0.75rem;
-    border-radius: 0.5rem;
-    font-weight: 600;
 }
 
 .transfer-badge {
@@ -1111,13 +1188,6 @@ body {
 }
 
 /* Record Action Buttons */
-.record-actions {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 1rem;
-    flex-wrap: wrap;
-}
-
 .reassess-btn {
     padding: 0.75rem 1.25rem;
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
@@ -1168,339 +1238,24 @@ body {
     color: #6b7280;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    body {
-        padding: 1rem 0.5rem;
-    }
-
-    .header {
-        padding: 1.5rem;
-    }
-
-    .header h1 {
-        font-size: 1.75rem;
-    }
-
-    .main-card {
-        padding: 1.5rem;
-    }
-
-    .age-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .score-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .vital-signs-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .action-buttons {
-        flex-direction: column;
-    }
-
-    .symptoms-buttons {
-        flex-direction: column;
-    }
-
-    .symptom-btn {
-        min-width: auto;
-    }
-
-    .transfer-section {
-        padding: 1.5rem;
-    }
-
-    .transfer-icon {
-        width: 50px;
-        height: 50px;
-        font-size: 1.5rem;
-    }
-
-    .total-score-main {
-        flex-direction: column;
-        text-align: center;
-    }
-
-    .total-score-number {
-        font-size: 3rem;
-    }
-
-    .total-score-breakdown {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .breakdown-item.additional {
-        grid-column: span 2;
-    }
-
-    .total-score-recommendation {
-        flex-direction: column;
-        text-align: center;
-    }
-
-    .recommendation-text {
-        font-size: 1.125rem;
-    }
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
 }
 
-@media (max-width: 480px) {
-    .vital-signs-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .record-details {
-        grid-template-columns: 1fr;
-    }
-
-    .vital-signs-summary-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-/* New Auto-Scoring UI Styles */
-
-/* Input Section Container */
-.input-section {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-}
-
-/* Score Display Grid - for showing selected scores visually */
-.score-display-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 0.75rem;
-    margin-top: 1rem;
-}
-
-.score-display-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    background: white;
-    border: 2px solid #e5e7eb;
-    border-radius: 0.75rem;
-    transition: all 0.3s;
-    min-height: 90px;
-}
-
-.score-display-item.selected {
-    border-color: #3b82f6;
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-    transform: translateY(-2px);
-}
-
-.score-display-item.selected::before {
-    content: '✓';
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    color: #3b82f6;
-    font-size: 1.25rem;
-    font-weight: bold;
-}
-
-.score-display-item {
-    position: relative;
-}
-
-.score-display-label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #475569;
-    text-align: center;
+.empty-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #374151;
     margin-bottom: 0.5rem;
-    line-height: 1.3;
 }
 
-.score-display-item.selected .score-display-label {
-    color: #1e40af;
-    font-weight: 600;
-}
-
-.score-display-value {
-    font-size: 1.75rem;
-    font-weight: bold;
-    color: #2563eb;
-}
-
-.score-display-item.selected .score-display-value {
-    color: #1e40af;
-}
-
-/* Input Row - for numeric inputs with labels and units */
-.input-row {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-    border: 2px solid #7dd3fc;
-    border-radius: 0.75rem;
-    flex-wrap: wrap;
-}
-
-.input-row label {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #0c4a6e;
-    margin: 0;
-    white-space: nowrap;
-    min-width: 180px;
-}
-
-.input-row input[type="number"] {
-    width: 120px;
-    font-size: 1rem;
-    font-weight: 600;
-    border: 2px solid #3b82f6;
-    border-radius: 0.5rem;
-    padding: 0.75rem;
-    text-align: center;
-    transition: all 0.2s;
-}
-
-.input-row input[type="number"]:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
-    transform: scale(1.02);
-}
-
-.input-row .unit-text {
+.empty-description {
     font-size: 0.875rem;
-    color: #475569;
-    font-weight: 500;
+    color: #6b7280;
 }
 
-/* Selector Row - for option button groups */
-.selector-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-    padding: 1rem;
-    background: #f8fafc;
-    border: 2px solid #e2e8f0;
-    border-radius: 0.75rem;
-    flex-wrap: wrap;
-}
-
-.selector-row label {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #334155;
-    margin: 0;
-    min-width: 100px;
-    padding-top: 0.5rem;
-}
-
-/* Option Buttons Container */
-.option-buttons {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    flex: 1;
-}
-
-/* Option Buttons Inline - แบบในบรรทัดเดียวกับ input-row */
-.option-buttons-inline {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    flex: 1;
-}
-
-/* Individual Option Button */
-.option-btn {
-    padding: 0.625rem 1rem;
-    border: 2px solid #d1d5db;
-    border-radius: 0.5rem;
-    background: white;
-    font-weight: 500;
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-}
-
-.option-btn:hover {
-    border-color: #3b82f6;
-    background: #eff6ff;
-}
-
-.option-btn.selected {
-    border-color: #3b82f6;
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    color: white;
-    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
-}
-
-/* Badge Orange - for Temperature section */
-.badge-orange {
-    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-}
-
-/* Total Score Breakdown */
-.total-score-breakdown {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.75rem;
-    font-size: 0.875rem;
-}
-
-.score-item {
-    padding: 0.25rem 0.75rem;
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: 0.375rem;
-    font-weight: 500;
-}
-
-/* Responsive adjustments for new elements */
-@media (max-width: 768px) {
-    .input-row {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .input-row label {
-        min-width: auto;
-    }
-
-    .input-row input[type="number"] {
-        width: 100%;
-    }
-
-    .selector-row {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .selector-row label {
-        min-width: auto;
-        padding-top: 0;
-    }
-
-    .option-buttons {
-        width: 100%;
-    }
-
-    .option-btn {
-        flex: 1;
-        min-width: calc(50% - 0.25rem);
-        text-align: center;
-    }
-}
-
-/* Comparison Container with Color-coded Background */
+/* Comparison Container */
 .comparison-container {
     margin-top: 1.5rem;
     padding: 2rem;
@@ -1662,4 +1417,90 @@ body {
     color: #ea580c;
 }
 
-/* Comparison Container */
+/* Responsive */
+@media (max-width: 768px) {
+    body {
+        padding: 1rem 0.5rem;
+    }
+
+    .header {
+        padding: 1.5rem;
+    }
+
+    .header h1 {
+        font-size: 1.75rem;
+    }
+
+    .main-card {
+        padding: 1.5rem;
+    }
+
+    .age-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .score-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cardio-inputs-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .score-buttons-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .symptoms-buttons {
+        flex-direction: column;
+    }
+
+    .symptom-btn {
+        min-width: auto;
+    }
+
+    .transfer-section {
+        padding: 1.5rem;
+    }
+
+    .transfer-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+
+    .total-score-number {
+        font-size: 3rem;
+    }
+
+    .total-score-breakdown {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .breakdown-item.additional {
+        grid-column: span 2;
+    }
+
+    .comparison-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .comparison-arrow {
+        transform: rotate(90deg);
+    }
+}
+
+@media (max-width: 480px) {
+    .record-details {
+        grid-template-columns: 1fr;
+    }
+
+    .vital-signs-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
