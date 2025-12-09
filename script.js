@@ -148,22 +148,17 @@ document.addEventListener('DOMContentLoaded', function() {
     if (tempInput) {
         tempInput.addEventListener('input', (e) => {
             state.temperatureValue = e.target.value;
-            document.querySelectorAll('#temp-options .option-btn').forEach(btn => btn.classList.remove('selected'));
             calculateTemperatureScore();
         });
     }
 
-    // Temperature option buttons
-    document.querySelectorAll('#temp-options .option-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('#temp-options .option-btn').forEach(b => b.classList.remove('selected'));
-            this.classList.add('selected');
-            const tempValue = this.dataset.temp;
-            state.temperatureValue = tempValue;
-            if (tempInput) {
-                tempInput.value = tempValue;
-            }
-            calculateTemperatureScore();
+    
+
+    // Temperature score display click handlers
+    document.querySelectorAll('#temp-score-display .score-display-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const score = parseInt(this.dataset.score);
+            selectTemperatureScore(score);
         });
     });
 
@@ -175,6 +170,8 @@ document.addEventListener('DOMContentLoaded', function() {
             calculateCardiovascularScore();
         });
     }
+
+    
 
     // Skin color buttons
     document.querySelectorAll('#skin-color-options .option-btn').forEach(btn => {
@@ -229,6 +226,8 @@ document.addEventListener('DOMContentLoaded', function() {
             calculateRespiratoryScore();
         });
     }
+
+    
 
     // Retraction buttons
     document.querySelectorAll('#retraction-options .option-btn').forEach(btn => {
@@ -347,6 +346,27 @@ function clearCHD() {
     checkCyanoticCHDCondition();
 }
 
+function selectTemperatureScore(score) {
+    state.temperatureScore = score;
+    let tempValue = '';
+    if (score === 0) tempValue = '37.0';
+    else if (score === 1) tempValue = '38.5';
+    else if (score === 2) tempValue = '39.5';
+    
+    state.temperatureValue = tempValue;
+    const tempInput = document.getElementById('temp-input');
+    if (tempInput) tempInput.value = tempValue;
+    
+    updateTemperatureScoreDisplay(score);
+    updateTotalScore();
+}
+
+function updateTemperatureScoreDisplay(score) {
+    document.querySelectorAll('#temp-score-display .score-display-item').forEach(item => {
+        item.classList.toggle('selected', parseInt(item.dataset.score) === score);
+    });
+}
+
 function calculateTemperatureScore() {
     const temp = parseFloat(state.temperatureValue);
     let score = null;
@@ -362,13 +382,14 @@ function calculateTemperatureScore() {
     }
 
     state.temperatureScore = score;
+    updateTemperatureScoreDisplay(score);
+    updateTotalScore();
+}
 
-    // Update visual feedback
-    document.querySelectorAll('#temp-score-display .score-display-item').forEach(item => {
+function updateCardiovascularScoreDisplay(score) {
+    document.querySelectorAll('#cardiovascular-score-display .score-display-item').forEach(item => {
         item.classList.toggle('selected', parseInt(item.dataset.score) === score);
     });
-
-    updateTotalScore();
 }
 
 function calculateCardiovascularScore() {
@@ -479,7 +500,7 @@ function calculateCardiovascularScore() {
 
         if (scoreDescriptions.length > 0) {
             scoreDisplayContainer.innerHTML = scoreDescriptions.map(desc => `
-                <div class="score-display-item ${finalScore === desc.score ? 'selected' : ''}" data-score="${desc.score}">
+                <div class="score-display-item ${finalScore === desc.score ? 'selected' : ''}" data-score="${desc.score}" onclick="selectCardiovascularScore(${desc.score})">
                     <div class="score-display-label">${desc.label}</div>
                     <div class="score-display-value">${desc.score}</div>
                 </div>
@@ -488,6 +509,18 @@ function calculateCardiovascularScore() {
     }
 
     updateTotalScore();
+}
+
+function selectCardiovascularScore(score) {
+    state.cardiovascularScore = score;
+    updateCardiovascularScoreDisplay(score);
+    updateTotalScore();
+}
+
+function updateRespiratoryScoreDisplay(score) {
+    document.querySelectorAll('#respiratory-score-display .score-display-item').forEach(item => {
+        item.classList.toggle('selected', parseInt(item.dataset.score) === score);
+    });
 }
 
 function calculateRespiratoryScore() {
@@ -584,7 +617,7 @@ function calculateRespiratoryScore() {
 
         if (scoreDescriptions.length > 0) {
             scoreDisplayContainer.innerHTML = scoreDescriptions.map(desc => `
-                <div class="score-display-item ${finalScore === desc.score ? 'selected' : ''}" data-score="${desc.score}">
+                <div class="score-display-item ${finalScore === desc.score ? 'selected' : ''}" data-score="${desc.score}" onclick="selectRespiratoryScore(${desc.score})">
                     <div class="score-display-label">${desc.label}</div>
                     <div class="score-display-value">${desc.score}</div>
                 </div>
@@ -592,6 +625,12 @@ function calculateRespiratoryScore() {
         }
     }
 
+    updateTotalScore();
+}
+
+function selectRespiratoryScore(score) {
+    state.respiratoryScore = score;
+    updateRespiratoryScoreDisplay(score);
     updateTotalScore();
 }
 
@@ -758,12 +797,18 @@ function getRecommendation(score) {
     return 'รับบริการตามปกติ';
 }
 
+function getScoreColorClass(score) {
+    if (score <= 1) return 'score-green';
+    if (score === 2) return 'score-yellow';
+    if (score === 3) return 'score-orange';
+    return 'score-red';
+}
+
 async function submitToGoogleForm(record) {
     if (submittedRecordIds.has(record.id)) {
         return;
     }
 
-    // Google Form URL ของคุณ
     const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSdNjCW8kkM3zOJfxL8aC5vWoS32_FIpf4yYusaujFOKbhxQrQ/formResponse';
     const formData = new FormData();
 
@@ -774,7 +819,6 @@ async function submitToGoogleForm(record) {
         return String(val);
     };
 
-    // แปลงชื่อช่วงอายุเป็นภาษาไทย
     const ageGroupMapping = {
         'newborn': 'Newborn (แรกเกิด-1 เดือน)',
         'infant': 'Infant (1-12 เดือน)',
@@ -784,20 +828,16 @@ async function submitToGoogleForm(record) {
         'adolescent': 'Adolescent (13-19 ปี)'
     };
 
-    // แปลง CHD Type
     const chdTypeMapping = {
         'acyanotic': 'Acyanotic CHD',
         'cyanotic': 'Cyanotic CHD',
         '': 'ไม่มี CHD'
     };
 
-    // สร้าง Vital Signs รวม
     const vitalSigns = `Temp: ${safeText(record.temperatureValue)} °C | PR: ${safeText(record.prValue)} bpm | RR: ${safeText(record.rrValue)} tpm | BP: ${safeText(record.bloodPressure)} mmHg | SpO₂: ${safeText(record.spo2)}%`;
 
-    // สร้างรายละเอียดคะแนน
     const scoreDetails = `Temp Score: ${safeText(record.temperatureScore)} | Behavior: ${safeText(record.behaviorScore)} | Cardiovascular: ${safeText(record.cardiovascularScore)} | Respiratory: ${safeText(record.respiratoryScore)} | Additional Risk: ${record.additionalRisk ? 'มี' : 'ไม่มี'} | Skin: ${safeText(record.skinColor)} | CRT: ${safeText(record.crt)} | Retraction: ${safeText(record.retraction)} | FiO₂: ${safeText(record.fio2)} | O₂: ${safeText(record.o2)}`;
 
-    // Note การพยาบาล
     let notesToSend = safeText(record.nursingNotes);
     if (record.isReassessment && record.parentRecordId) {
         const parent = state.records.find(r => r.id === record.parentRecordId);
@@ -813,30 +853,21 @@ async function submitToGoogleForm(record) {
         }
     }
 
-    // ส่งข้อมูลไปยัง Google Form ตาม entry IDs ที่ถูกต้อง
-    formData.append('entry.548024940', safeText(record.hn)); // HN
-    formData.append('entry.1691416727', safeText(record.location)); // สถานที่
-    formData.append('entry.1308705625', ageGroupMapping[record.ageGroup] || safeText(record.ageGroup)); // ช่วงอายุ
-    formData.append('entry.54134142', safeText(record.temperatureValue)); // Temp (°C)
-    formData.append('entry.968429810', safeText(record.totalScore)); // คะแนนรวม PEWS
-    formData.append('entry.385871425', vitalSigns); // Vital Signs
-    formData.append('entry.381918120', scoreDetails); // รายละเอียดคะแนน
-    formData.append('entry.2139857838', chdTypeMapping[record.chdType] || 'ไม่ระบุ'); // CHD
-    formData.append('entry.1652284044', record.palsEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'); // PALS
-    formData.append('entry.1322870299', notesToSend); // การพยาบาล
-    formData.append('entry.565363340', safeText(record.transferDestination)); // ส่งต่อไปที่
-    formData.append('entry.396417988', new Date(record.createdAt).toLocaleString('th-TH')); // เวลาบันทึก
-    formData.append('entry.913159674', record.isReassessment ? 'ใช่' : 'ไม่ใช่'); // ประเมินซ้ำ
+    formData.append('entry.548024940', safeText(record.hn));
+    formData.append('entry.1691416727', safeText(record.location));
+    formData.append('entry.1308705625', ageGroupMapping[record.ageGroup] || safeText(record.ageGroup));
+    formData.append('entry.54134142', safeText(record.temperatureValue));
+    formData.append('entry.968429810', safeText(record.totalScore));
+    formData.append('entry.385871425', vitalSigns);
+    formData.append('entry.381918120', scoreDetails);
+    formData.append('entry.2139857838', chdTypeMapping[record.chdType] || 'ไม่ระบุ');
+    formData.append('entry.1652284044', record.palsEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน');
+    formData.append('entry.1322870299', notesToSend);
+    formData.append('entry.565363340', safeText(record.transferDestination));
+    formData.append('entry.396417988', new Date(record.createdAt).toLocaleString('th-TH'));
+    formData.append('entry.913159674', record.isReassessment ? 'ใช่' : 'ไม่ใช่');
 
     console.log(`📤 กำลังส่งข้อมูล ID: ${record.id} ไป Google Form...`);
-    console.log('📝 ข้อมูลที่ส่ง:', {
-        HN: record.hn,
-        Location: record.location,
-        AgeGroup: ageGroupMapping[record.ageGroup],
-        TotalScore: record.totalScore,
-        CreatedAt: new Date(record.createdAt).toLocaleString('th-TH')
-    });
-
     submittedRecordIds.add(record.id);
 
     try {
@@ -987,9 +1018,21 @@ function renderRecords() {
 
         let comparisonHTML = '';
         if (isReassessment && parentRecord) {
+            const parentScoreClass = getScoreColorClass(parentRecord.totalScore);
+            const currentScoreClass = getScoreColorClass(record.totalScore);
+            
+            const scoreChanged = record.totalScore !== parentRecord.totalScore;
+            const scoreChangeIndicator = scoreChanged ? 
+                `<div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.6); border-radius: 0.5rem;">
+                    <span class="score-comparison-highlight ${parentScoreClass}" style="font-size: 1.5rem; padding: 0.5rem 1rem;">${parentRecord.totalScore}</span>
+                    <span style="font-size: 1.5rem; font-weight: bold; color: #6b7280;">→</span>
+                    <span class="score-comparison-highlight ${currentScoreClass}" style="font-size: 1.5rem; padding: 0.5rem 1rem;">${record.totalScore}</span>
+                </div>` : '';
+            
             comparisonHTML = `
                 <div class="comparison-container">
                     <h4>📊 เปรียบเทียบผลการประเมิน</h4>
+                    ${scoreChangeIndicator}
                     <div class="comparison-grid">
                         <div class="comparison-column">
                             <div class="comparison-header">
@@ -1002,7 +1045,7 @@ function renderRecords() {
                             <div class="comparison-data">
                                 <div class="data-item">
                                     <span class="data-label">คะแนนรวม</span>
-                                    <span class="data-value score-value">${parentRecord.totalScore}</span>
+                                    <span class="score-comparison-highlight ${parentScoreClass}">${parentRecord.totalScore}</span>
                                 </div>
                                 <div class="data-item">
                                     <span class="data-label">Temp</span>
@@ -1040,7 +1083,7 @@ function renderRecords() {
                             <div class="comparison-data">
                                 <div class="data-item ${record.totalScore !== parentRecord.totalScore ? 'changed' : ''}">
                                     <span class="data-label">คะแนนรวม</span>
-                                    <span class="data-value score-value">${record.totalScore}</span>
+                                    <span class="score-comparison-highlight ${currentScoreClass}">${record.totalScore}</span>
                                 </div>
                                 <div class="data-item ${record.temperatureValue !== parentRecord.temperatureValue ? 'changed' : ''}">
                                     <span class="data-label">Temp</span>
@@ -1097,10 +1140,6 @@ function renderRecords() {
                         <span class="detail-label">คะแนนรวม:</span>
                         <span class="total-score-badge ${scoreColorClass}">${record.totalScore}</span>
                     </div>
-                    <div class="detail-row">
-                        <span class="detail-label">การดำเนินการ:</span>
-                        <span class="action-badge">${record.action}</span>
-                    </div>
                     ${record.nursingNotes ? `
                     <div class="detail-row">
                         <span class="detail-label">การพยาบาล:</span>
@@ -1109,7 +1148,7 @@ function renderRecords() {
                     ` : ''}
                     ${record.transferDestination ? `
                     <div class="detail-row">
-                        <span class="detail-label">ส่งต่อไปที่:</span>
+                        <span class="detail-label">ส่งต่อ:</span>
                         <span class="transfer-badge">${record.transferDestination}</span>
                     </div>
                     ` : ''}
