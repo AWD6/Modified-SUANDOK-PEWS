@@ -1,3 +1,4 @@
+
 * {
     margin: 0;
     padding: 0;
@@ -225,6 +226,10 @@ body {
 
 .badge-purple-2 {
     background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+}
+
+.badge-orange {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
 }
 
 /* Error & Warning Messages */
@@ -515,25 +520,29 @@ body {
 .total-score-breakdown {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-    gap: 0.75rem;
+    gap: 1rem;
     margin-bottom: 2rem;
+    padding: 0 1rem;
 }
 
 .breakdown-item {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
-    padding: 1rem 0.5rem;
-    background: rgba(255, 255, 255, 0.4);
-    border-radius: 0.5rem;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    transition: all 0.2s;
+    padding: 1.25rem 0.75rem;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 0.75rem;
+    border: 2px solid rgba(0, 0, 0, 0.08);
+    transition: all 0.3s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .breakdown-item:hover {
-    background: rgba(255, 255, 255, 0.6);
-    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.7);
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .breakdown-item.additional {
@@ -723,6 +732,10 @@ body {
 }
 
 /* Patient Form */
+.patient-form {
+    margin-bottom: 2rem;
+}
+
 .patient-form h3 {
     font-size: 1.25rem;
     font-weight: bold;
@@ -1168,6 +1181,342 @@ body {
     color: #6b7280;
 }
 
+/* Input Section Container */
+.input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* Score Display Grid - for showing selected scores visually */
+.score-display-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.score-display-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.75rem;
+    transition: all 0.3s;
+    min-height: 90px;
+    cursor: pointer;
+    position: relative;
+}
+
+.score-display-item:hover {
+    border-color: #93c5fd;
+    background: #f0f9ff;
+    transform: translateY(-2px);
+}
+
+.score-display-item.selected {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    transform: translateY(-2px);
+}
+
+.score-display-item.selected::before {
+    content: '✓';
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    color: #3b82f6;
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+.score-display-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #475569;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+}
+
+.score-display-item.selected .score-display-label {
+    color: #1e40af;
+    font-weight: 600;
+}
+
+.score-display-value {
+    font-size: 1.75rem;
+    font-weight: bold;
+    color: #2563eb;
+}
+
+.score-display-item.selected .score-display-value {
+    color: #1e40af;
+}
+
+/* Input Row - ใช้สีน้ำเงินและตัวหนังสือสีดำเหมือน PR */
+.input-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border: 2px solid #7dd3fc;
+    border-radius: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.input-row label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+    white-space: nowrap;
+    min-width: 180px;
+}
+
+.input-row input[type="number"],
+.input-row input[type="text"] {
+    width: 120px;
+    font-size: 1rem;
+    font-weight: 600;
+    border: 2px solid #3b82f6;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.input-row input[type="number"]:focus,
+.input-row input[type="text"]:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+    transform: scale(1.02);
+}
+
+.input-row .unit-text {
+    font-size: 0.875rem;
+    color: #1f2937;
+    font-weight: 500;
+}
+
+/* Selector Row - for option button groups */
+.selector-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border: 2px solid #7dd3fc;
+    border-radius: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.selector-row label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+    min-width: 180px;
+    padding-top: 0.5rem;
+}
+
+/* Option Buttons Container */
+.option-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+/* Option Buttons Inline - แบบในบรรทัดเดียวกับ input-row */
+.option-buttons-inline {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+/* Individual Option Button */
+.option-btn {
+    padding: 0.625rem 1rem;
+    border: 2px solid #d1d5db;
+    border-radius: 0.5rem;
+    background: white;
+    font-weight: 500;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.option-btn:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.option-btn.selected {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+}
+
+/* Comparison Container */
+.comparison-container {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 2px solid #e2e8f0;
+    border-radius: 0.75rem;
+}
+
+.comparison-container h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 1rem;
+}
+
+.comparison-grid {
+    display: flex;
+    gap: 1rem;
+    align-items: stretch;
+    flex-wrap: wrap;
+}
+
+.comparison-column {
+    flex: 1;
+    min-width: 200px;
+    padding: 1rem;
+    background: white;
+    border-radius: 0.5rem;
+    border: 2px solid #e2e8f0;
+}
+
+.comparison-column.highlight {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+}
+
+.comparison-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.comparison-badge {
+    width: 28px;
+    height: 28px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.875rem;
+}
+
+.comparison-title {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 0.9rem;
+}
+
+.comparison-time {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.comparison-data {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.comparison-data .data-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 0.375rem;
+    transition: all 0.2s;
+}
+
+.comparison-data .data-item.changed {
+    background: #fef3c7;
+    border-left: 3px solid #f59e0b;
+}
+
+.comparison-data .data-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.comparison-data .data-value {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.comparison-data .data-value.score-value {
+    font-size: 1.25rem;
+    color: #2563eb;
+}
+
+.comparison-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #94a3b8;
+    padding: 0 0.5rem;
+}
+
+.score-comparison-highlight {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 700;
+    display: inline-block;
+}
+
+.score-comparison-highlight.score-green {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    color: #166534;
+    border: 2px solid #86efac;
+}
+
+.score-comparison-highlight.score-yellow {
+    background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%);
+    color: #854d0e;
+    border: 2px solid #fde047;
+}
+
+.score-comparison-highlight.score-orange {
+    background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+    color: #9a3412;
+    border: 2px solid #fb923c;
+}
+
+.score-comparison-highlight.score-red {
+    background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+    color: #991b1b;
+    border: 2px solid #f87171;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     body {
@@ -1245,6 +1594,50 @@ body {
     .recommendation-text {
         font-size: 1.125rem;
     }
+
+    .input-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .input-row label {
+        min-width: auto;
+    }
+    
+    .input-row input[type="number"],
+    .input-row input[type="text"] {
+        width: 100%;
+    }
+    
+    .selector-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .selector-row label {
+        min-width: auto;
+        padding-top: 0;
+    }
+    
+    .option-buttons,
+    .option-buttons-inline {
+        width: 100%;
+    }
+    
+    .option-btn {
+        flex: 1;
+        min-width: calc(50% - 0.25rem);
+        text-align: center;
+    }
+
+    .comparison-grid {
+        flex-direction: column;
+    }
+
+    .comparison-arrow {
+        transform: rotate(90deg);
+        padding: 0.5rem 0;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1259,243 +1652,8 @@ body {
     .vital-signs-summary-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-}
 
-/* New Auto-Scoring UI Styles */
-
-/* Input Section Container */
-.input-section {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-}
-
-/* Score Display Grid - for showing selected scores visually */
-.score-display-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 0.75rem;
-    margin-top: 1rem;
-}
-
-.score-display-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    background: white;
-    border: 2px solid #e5e7eb;
-    border-radius: 0.75rem;
-    transition: all 0.3s;
-    min-height: 90px;
-}
-
-.score-display-item.selected {
-    border-color: #3b82f6;
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-    transform: translateY(-2px);
-}
-
-.score-display-item.selected::before {
-    content: '✓';
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    color: #3b82f6;
-    font-size: 1.25rem;
-    font-weight: bold;
-}
-
-.score-display-item {
-    position: relative;
-}
-
-.score-display-label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #475569;
-    text-align: center;
-    margin-bottom: 0.5rem;
-    line-height: 1.3;
-}
-
-.score-display-item.selected .score-display-label {
-    color: #1e40af;
-    font-weight: 600;
-}
-
-.score-display-value {
-    font-size: 1.75rem;
-    font-weight: bold;
-    color: #2563eb;
-}
-
-.score-display-item.selected .score-display-value {
-    color: #1e40af;
-}
-
-/* Input Row - for numeric inputs with labels and units */
-.input-row {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-    border: 2px solid #7dd3fc;
-    border-radius: 0.75rem;
-    flex-wrap: wrap;
-}
-
-.input-row label {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #0c4a6e;
-    margin: 0;
-    white-space: nowrap;
-    min-width: 180px;
-}
-
-.input-row input[type="number"] {
-    width: 120px;
-    font-size: 1rem;
-    font-weight: 600;
-    border: 2px solid #3b82f6;
-    border-radius: 0.5rem;
-    padding: 0.75rem;
-    text-align: center;
-    transition: all 0.2s;
-}
-
-.input-row input[type="number"]:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
-    transform: scale(1.02);
-}
-
-.input-row .unit-text {
-    font-size: 0.875rem;
-    color: #475569;
-    font-weight: 500;
-}
-
-/* Selector Row - for option button groups */
-.selector-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-    padding: 1rem;
-    background: #f8fafc;
-    border: 2px solid #e2e8f0;
-    border-radius: 0.75rem;
-    flex-wrap: wrap;
-}
-
-.selector-row label {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #334155;
-    margin: 0;
-    min-width: 100px;
-    padding-top: 0.5rem;
-}
-
-/* Option Buttons Container */
-.option-buttons {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    flex: 1;
-}
-
-/* Option Buttons Inline - แบบในบรรทัดเดียวกับ input-row */
-.option-buttons-inline {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    flex: 1;
-}
-
-/* Individual Option Button */
-.option-btn {
-    padding: 0.625rem 1rem;
-    border: 2px solid #d1d5db;
-    border-radius: 0.5rem;
-    background: white;
-    font-weight: 500;
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-}
-
-.option-btn:hover {
-    border-color: #3b82f6;
-    background: #eff6ff;
-}
-
-.option-btn.selected {
-    border-color: #3b82f6;
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    color: white;
-    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
-}
-
-/* Badge Orange - for Temperature section */
-.badge-orange {
-    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-}
-
-/* Total Score Breakdown */
-.total-score-breakdown {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.75rem;
-    font-size: 0.875rem;
-}
-
-.score-item {
-    padding: 0.25rem 0.75rem;
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: 0.375rem;
-    font-weight: 500;
-}
-
-/* Responsive adjustments for new elements */
-@media (max-width: 768px) {
-    .input-row {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .input-row label {
-        min-width: auto;
-    }
-    
-    .input-row input[type="number"] {
-        width: 100%;
-    }
-    
-    .selector-row {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .selector-row label {
-        min-width: auto;
-        padding-top: 0;
-    }
-    
-    .option-buttons {
-        width: 100%;
-    }
-    
-    .option-btn {
-        flex: 1;
-        min-width: calc(50% - 0.25rem);
-        text-align: center;
+    .score-display-grid {
+        grid-template-columns: 1fr;
     }
 }
