@@ -470,9 +470,9 @@ body {
 }
 
 .total-score.orange {
-    background: linear-gradient(135deg, rgba(254, 226, 226, 0.95) 0%, rgba(254, 202, 202, 0.95) 100%);
-    border-color: #fca5a5;
-    color: #7f1d1d;
+    background: linear-gradient(135deg, rgba(254, 215, 170, 0.95) 0%, rgba(253, 186, 116, 0.95) 100%);
+    border-color: #fb923c;
+    color: #7c2d12;
 }
 
 .total-score.high {
