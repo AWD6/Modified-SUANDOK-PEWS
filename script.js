@@ -81,7 +81,10 @@ let state = {
     isReassessment: false,
     chdType: '',
     palsEnabled: false,
-    records: []
+    records: [],
+    // 💡 โค้ดที่เพิ่ม: สำหรับ CHD Alert Score
+    chdAlertScore: 0,
+    chdAlertMessage: ''
 };
 
 let isSavingRecord = false;
@@ -573,9 +576,10 @@ function calculateRespiratoryScore() {
         if (spo2 < 95) {
             spo2Score = 3;
         }
-        // Check for Cyanotic CHD condition
+        // Check for Cyanotic CHD condition - Note: The special CHD score is handled in checkCyanoticCHDCondition()
         if (state.chdType === 'cyanotic' && spo2 < 75) {
-            spo2Score = 3;
+             // Keep the standard spo2 score of 3 here, the +4 score is for the total calculation
+             spo2Score = 3; 
         }
     }
 
@@ -634,7 +638,21 @@ function selectRespiratoryScore(score) {
     updateTotalScore();
 }
 
+// 💡 โค้ดที่ได้รับการแก้ไข/เพิ่มเติม: Logic สำหรับการแจ้งเตือน CHD
 function checkCyanoticCHDCondition() {
+    const spo2 = parseInt(state.spo2);
+    
+    // รีเซ็ตสถานะการแจ้งเตือน
+    state.chdAlertScore = 0;
+    state.chdAlertMessage = '';
+
+    // ตรวจสอบเงื่อนไข: Cyanotic CHD + SpO2 < 75%
+    if (state.chdType === 'cyanotic' && !isNaN(spo2) && spo2 < 75) {
+        state.chdAlertScore = 4; // บวกคะแนนเพิ่ม +4
+        state.chdAlertMessage = 'พิจารณาส่งต่อ ER โดยด่วน!'; // ข้อความแจ้งเตือน
+    }
+
+    // คำนวณคะแนนพื้นฐานและอัปเดตคะแนนรวม
     calculateRespiratoryScore();
     updateTotalScore();
 }
@@ -728,19 +746,51 @@ function selectBehavior(score) {
     updateTotalScore();
 }
 
+// 💡 โค้ดที่ได้รับการแก้ไข: ฟังก์ชัน updateTotalScore() - แยก Alert ออกจาก Nursing Notes
 function updateTotalScore() {
     const temperature = state.temperatureScore || 0;
     const behavior = state.behaviorScore || 0;
     const cardiovascular = state.cardiovascularScore || 0;
     const respiratory = state.respiratoryScore || 0;
     const additional = state.additionalRisk ? 2 : 0;
-    const total = temperature + behavior + cardiovascular + respiratory + additional;
+    
+    let total = temperature + behavior + cardiovascular + respiratory + additional;
+    let extraChdScore = 0; // คะแนนพิเศษจาก CHD Alert
+    let chdAlertMessage = state.chdAlertMessage || ''; // ดึงข้อความแจ้งเตือนจาก state
+
+    // นำคะแนนพิเศษ +4 มารวมกับคะแนนรวม PEWS
+    if (state.chdAlertScore > 0) {
+        extraChdScore = state.chdAlertScore;
+        total += extraChdScore; // เพิ่ม +4 เข้าไปในคะแนนรวม
+    }
+    // -----------------------------------------------------------
+
+    const riskLevel = getRiskLevel(total);
+    // 1. ดึงข้อความแนะนำมาตรฐาน
+    let recommendationStandard = getRecommendation(total); 
+
+    // 2. สร้าง HTML สำหรับส่วนแสดงผล (รวม Alert)
+    let recommendationDisplayHtml = recommendationStandard;
+
+    // เพิ่มข้อความแจ้งเตือนด่วนเข้าไปในส่วนคำแนะนำสำหรับแสดงผลเท่านั้น
+    if (chdAlertMessage) {
+        const alertHtml = `<span class="urgent-alert-text">${chdAlertMessage}</span>`;
+        // ใช้ <br/> เพื่อแบ่ง Alert กับข้อความแนะนำมาตรฐาน
+        recommendationDisplayHtml = alertHtml + '<br/>' + recommendationDisplayHtml; 
+    }
+    // -----------------------------------------------------------
 
     const display = document.getElementById('total-score-display');
-    const recommendation = getRecommendation(total);
-    const riskLevel = getRiskLevel(total);
-
     display.className = `total-score ${riskLevel}`;
+
+    // สร้าง HTML สำหรับแสดงคะแนนพิเศษ CHD ALERT
+    const chdAlertBreakdown = extraChdScore > 0 ? `
+        <div class="breakdown-item additional" style="background: #fef3c7; border: 2px solid #fdba74;"> 
+            <span class="breakdown-label" style="color: #9a3412;">CHD ALERT</span> 
+            <span class="breakdown-value" style="color: #ea580c;">+${extraChdScore}</span> 
+        </div> 
+    ` : '';
+
     display.innerHTML = `
         <div class="total-score-wrapper">
             <div class="total-score-main">
@@ -767,19 +817,22 @@ function updateTotalScore() {
                     <span class="breakdown-value">${respiratory}</span>
                 </div>
                 ${additional > 0 ? `
-                <div class="breakdown-item additional">
-                    <span class="breakdown-label">เสี่ยง</span>
-                    <span class="breakdown-value">${additional}</span>
-                </div>
+                    <div class="breakdown-item additional">
+                        <span class="breakdown-label">เสี่ยง</span>
+                        <span class="breakdown-value">${additional}</span>
+                    </div>
                 ` : ''}
+                ${chdAlertBreakdown} 
             </div>
             <div class="total-score-recommendation">
-                <div class="recommendation-text">${recommendation}</div>
+                <div class="recommendation-text">${recommendationDisplayHtml}</div>
             </div>
         </div>
     `;
-    document.getElementById('nursing-notes').value = recommendation;
-    state.nursingNotes = recommendation;
+
+    // 3. กำหนดให้ช่อง Nursing Notes ใช้แค่ข้อความแนะนำมาตรฐานเท่านั้น
+    document.getElementById('nursing-notes').value = recommendationStandard;
+    state.nursingNotes = recommendationStandard;
 }
 
 function getRiskLevel(score) {
@@ -833,10 +886,12 @@ async function submitToGoogleForm(record) {
         'cyanotic': 'Cyanotic CHD',
         '': 'ไม่มี CHD'
     };
-
+    
+    // 💡 โค้ดที่แก้ไข: เพิ่ม chdAlertScore เข้าไปใน scoreDetails
+    const extraChdScore = record.chdAlertScore > 0 ? ` (+${record.chdAlertScore} CHD Alert)` : '';
     const vitalSigns = `Temp: ${safeText(record.temperatureValue)} °C | PR: ${safeText(record.prValue)} bpm | RR: ${safeText(record.rrValue)} tpm | BP: ${safeText(record.bloodPressure)} mmHg | SpO₂: ${safeText(record.spo2)}%`;
+    const scoreDetails = `Temp Score: ${safeText(record.temperatureScore)} | Behavior: ${safeText(record.behaviorScore)} | Cardiovascular: ${safeText(record.cardiovascularScore)} | Respiratory: ${safeText(record.respiratoryScore)}${extraChdScore} | Additional Risk: ${record.additionalRisk ? 'มี' : 'ไม่มี'} | Skin: ${safeText(record.skinColor)} | CRT: ${safeText(record.crt)} | Retraction: ${safeText(record.retraction)} | FiO₂: ${safeText(record.fio2)} | O₂: ${safeText(record.o2)}`;
 
-    const scoreDetails = `Temp Score: ${safeText(record.temperatureScore)} | Behavior: ${safeText(record.behaviorScore)} | Cardiovascular: ${safeText(record.cardiovascularScore)} | Respiratory: ${safeText(record.respiratoryScore)} | Additional Risk: ${record.additionalRisk ? 'มี' : 'ไม่มี'} | Skin: ${safeText(record.skinColor)} | CRT: ${safeText(record.crt)} | Retraction: ${safeText(record.retraction)} | FiO₂: ${safeText(record.fio2)} | O₂: ${safeText(record.o2)}`;
 
     let notesToSend = safeText(record.nursingNotes);
     if (record.isReassessment && record.parentRecordId) {
@@ -921,7 +976,13 @@ async function saveRecord(action) {
         const cardiovascular = state.cardiovascularScore || 0;
         const respiratory = state.respiratoryScore || 0;
         const additional = state.additionalRisk ? 2 : 0;
-        const total = temperature + behavior + cardiovascular + respiratory + additional;
+        
+        // 💡 โค้ดที่แก้ไข: คำนวณ total score โดยรวม chdAlertScore
+        let total = temperature + behavior + cardiovascular + respiratory + additional;
+        if (state.chdAlertScore > 0) {
+            total += state.chdAlertScore;
+        }
+
 
         const locationValue = state.location === 'อื่นๆ' ? `อื่นๆ: ${state.locationOther}` : state.location;
         const transferValue = state.transferDestination === 'อื่นๆ' ? `อื่นๆ: ${state.transferDestinationOther}` : state.transferDestination;
@@ -939,7 +1000,7 @@ async function saveRecord(action) {
             cardiovascularScore: cardiovascular,
             respiratoryScore: respiratory,
             additionalRisk: state.additionalRisk,
-            totalScore: total,
+            totalScore: total, // ใช้ total ที่รวม chdAlertScore แล้ว
             nursingNotes: state.nursingNotes,
             symptomsChanged: state.symptomsChanged,
             action: action,
@@ -955,6 +1016,8 @@ async function saveRecord(action) {
             spo2: state.spo2 || 'ไม่ระบุ',
             chdType: state.chdType || '',
             palsEnabled: state.palsEnabled,
+            // 💡 โค้ดที่เพิ่ม: บันทึก chdAlertScore ด้วย
+            chdAlertScore: state.chdAlertScore, 
             parentRecordId: state.parentRecordId,
             isReassessment: state.isReassessment,
             createdAt: new Date().toISOString()
@@ -1116,6 +1179,8 @@ function renderRecords() {
         const scoreColorClass = riskLevel === 'low' ? 'score-green' :
                                 riskLevel === 'medium' ? 'score-yellow' :
                                 riskLevel === 'orange' ? 'score-orange' : 'score-red';
+        
+        const chdAlertInfo = record.chdAlertScore > 0 ? `<span class="chd-alert-badge">+${record.chdAlertScore} CHD ALERT</span>` : '';
 
         return `
             <div class="record-card">
@@ -1139,6 +1204,7 @@ function renderRecords() {
                     <div class="detail-row">
                         <span class="detail-label">คะแนนรวม:</span>
                         <span class="total-score-badge ${scoreColorClass}">${record.totalScore}</span>
+                        ${chdAlertInfo}
                     </div>
                     ${record.nursingNotes ? `
                     <div class="detail-row">
@@ -1265,6 +1331,10 @@ function resetForm() {
     state.palsEnabled = false;
     state.parentRecordId = null;
     state.isReassessment = false;
+    // 💡 โค้ดที่เพิ่ม: Reset CHD Alert state
+    state.chdAlertScore = 0;
+    state.chdAlertMessage = '';
+
 
     document.getElementById('hn-input-top').value = '';
     document.getElementById('location-select').value = '';
