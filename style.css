@@ -1657,3 +1657,27 @@ body {
         grid-template-columns: 1fr;
     }
 }
+/* CSS for the urgent alert text in total score display */
+.urgent-alert-text {
+    color: #ef4444; /* สีแดง */
+    font-weight: bold;
+    font-size: 1.2em; /* ขนาดใหญ่ขึ้นเล็กน้อย */
+    animation: pulse-red 1s infinite;
+    display: block; /* ขึ้นบรรทัดใหม่ */
+    margin-bottom: 0.5rem;
+}
+
+@keyframes pulse-red {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.02);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
