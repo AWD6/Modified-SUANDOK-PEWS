@@ -583,35 +583,69 @@ function formatDateTime(isoString) {
 
 async function submitToGoogleForm(record) {
     if (submittedRecordIds.has(record.id)) return;
+
+    // --- 1. ตั้งค่า Mapping เลข Entry ID ให้ตรงกับ Google Form จริง ---
+    const FORM_FIELD_IDS = {
+        hn: 'entry.548024940',             // HN
+        location: 'entry.1691416727',      // สถานที่
+        ageGroup: 'entry.1308705625',      // ช่วงอายุ
+        temp: 'entry.54134142',            // Temp
+        totalScore: 'entry.968429810',     // คะแนนรวม
+        vitalSigns: 'entry.385871425',     // Vital Signs (Paragraph)
+        scoreDetails: 'entry.381918120',   // รายละเอียดคะแนน (Paragraph)
+        chd: 'entry.2139857838',           // CHD
+        pals: 'entry.1652284044',          // PALS
+        notes: 'entry.1322870299',         // การพยาบาล (Paragraph)
+        transfer: 'entry.565363340',       // ส่งต่อไปที่
+        timestamp: 'entry.396417988',      // เวลาบันทึก
+        reassessment: 'entry.913159674'    // ประเมินซ้ำ (Paragraph)
+    };
+
     const formData = new FormData();
     const safeText = (val) => (val === undefined || val === null || String(val).trim() === '') ? '-' : String(val);
 
+    // Mapping ค่าตัวเลือกให้ตรงกับข้อความที่ต้องการส่ง
     const ageGroupMapping = {
-        'newborn': 'Newborn (แรกเกิด-1 เดือน)', 'infant': 'Infant (1-12 เดือน)', 'toddler': 'Toddler (13 เดือน - 3 ปี)',
-        'preschool': 'Preschool (4-6 ปี)', 'schoolage': 'School age (7-12 ปี)', 'adolescent': 'Adolescent (13-19 ปี)'
+        'newborn': 'Newborn (แรกเกิด-1 เดือน)',
+        'infant': 'Infant (1-12 เดือน)',
+        'toddler': 'Toddler (13 เดือน - 3 ปี)',
+        'preschool': 'Preschool (4-6 ปี)',
+        'schoolage': 'School age (7-12 ปี)',
+        'adolescent': 'Adolescent (13-19 ปี)'
     };
-    const chdTypeMapping = { 'acyanotic': 'Acyanotic CHD', 'cyanotic': 'Cyanotic CHD', '': 'ไม่มี CHD' };
 
+    const chdTypeMapping = {
+        'acyanotic': 'Acyanotic CHD',
+        'cyanotic': 'Cyanotic CHD',
+        '': 'ไม่มี CHD'
+    };
+
+    // เตรียมข้อความรวม
     const extraChdScore = record.chdAlertScore > 0 ? ` (+${record.chdAlertScore} CHD Alert)` : '';
-    const vitalSigns = `Temp: ${safeText(record.temperatureValue)} | PR: ${safeText(record.prValue)} | RR: ${safeText(record.rrValue)} | BP: ${safeText(record.bloodPressure)} | SpO₂: ${safeText(record.spo2)}%`;
-    const scoreDetails = `Temp Score: ${safeText(record.temperatureScore)} | Behav: ${safeText(record.behaviorScore)} | Cardio: ${safeText(record.cardiovascularScore)} | Resp: ${safeText(record.respiratoryScore)}${extraChdScore}`;
+    const vitalSignsText = `Temp: ${safeText(record.temperatureValue)} | PR: ${safeText(record.prValue)} | RR: ${safeText(record.rrValue)} | BP: ${safeText(record.bloodPressure)} | SpO₂: ${safeText(record.spo2)}%`;
+    const scoreDetailsText = `Temp Score: ${safeText(record.temperatureScore)} | Behav: ${safeText(record.behaviorScore)} | Cardio: ${safeText(record.cardiovascularScore)} | Resp: ${safeText(record.respiratoryScore)}${extraChdScore}`;
+    const reassessmentText = record.isReassessment ? 'ใช่ (ประเมินซ้ำ)' : 'ไม่ใช่ (ประเมินครั้งแรก)';
 
-    formData.append('entry.548024940', safeText(record.hn));
-    formData.append('entry.1691416727', safeText(record.location));
-    formData.append('entry.1308705625', ageGroupMapping[record.ageGroup] || safeText(record.ageGroup));
-    formData.append('entry.54134142', safeText(record.temperatureValue));
-    formData.append('entry.968429810', safeText(record.totalScore));
-    formData.append('entry.385871425', vitalSigns);
-    formData.append('entry.381918120', scoreDetails);
-    formData.append('entry.2139857838', chdTypeMapping[record.chdType] || 'ไม่ระบุ');
-    formData.append('entry.1652284044', record.palsEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน');
-    formData.append('entry.1322870299', safeText(record.nursingNotes));
-    formData.append('entry.565363340', safeText(record.transferDestination));
-    formData.append('entry.396417988', new Date(record.createdAt).toLocaleString('th-TH'));
+    // Append ข้อมูลลง Form Data
+    formData.append(FORM_FIELD_IDS.hn, safeText(record.hn));
+    formData.append(FORM_FIELD_IDS.location, safeText(record.location));
+    formData.append(FORM_FIELD_IDS.ageGroup, ageGroupMapping[record.ageGroup] || safeText(record.ageGroup));
+    formData.append(FORM_FIELD_IDS.temp, safeText(record.temperatureValue));
+    formData.append(FORM_FIELD_IDS.totalScore, safeText(record.totalScore));
+    formData.append(FORM_FIELD_IDS.vitalSigns, vitalSignsText);
+    formData.append(FORM_FIELD_IDS.scoreDetails, scoreDetailsText);
+    formData.append(FORM_FIELD_IDS.chd, chdTypeMapping[record.chdType] || 'ไม่ระบุ');
+    formData.append(FORM_FIELD_IDS.pals, record.palsEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน');
+    formData.append(FORM_FIELD_IDS.notes, safeText(record.nursingNotes));
+    formData.append(FORM_FIELD_IDS.transfer, safeText(record.transferDestination));
+    formData.append(FORM_FIELD_IDS.timestamp, new Date(record.createdAt).toLocaleString('th-TH'));
+    formData.append(FORM_FIELD_IDS.reassessment, reassessmentText);
 
     submittedRecordIds.add(record.id);
+
     try {
         await fetch(GOOGLE_FORM_URL, { method: 'POST', mode: 'no-cors', body: formData });
+        console.log('Submitted to Google Form successfully');
     } catch (error) {
         console.error('Error submitting to Google Form:', error);
         submittedRecordIds.delete(record.id);
