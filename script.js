@@ -616,7 +616,7 @@ async function submitToGoogleForm(record) {
 
     const vitalSignsText = `Temp: ${safeText(record.temperatureValue)} | PR: ${safeText(record.prValue)} | RR: ${safeText(record.rrValue)} | BP: ${safeText(record.bloodPressure)} | SpO₂: ${safeText(record.spo2)}%`;
     const scoreDetailsText = `Temp Score: ${safeText(record.temperatureScore)} | Behav: ${safeText(record.behaviorScore)} | Cardio: ${safeText(record.cardiovascularScore)} | Resp: ${safeText(record.respiratoryScore)}`;
-    const reassessmentText = record.isReassessment ? 'ใช่ (ประเมินซ้ำ)' : 'ไม่ใช่ (ประเมินครั้งแรก)';
+    const reassessmentText = record.isReassessment ? 'ใช่' : 'ไม่ใช่';
 
     formData.append(FORM_FIELD_IDS.hn, safeText(record.hn));
     formData.append(FORM_FIELD_IDS.location, safeText(record.location));
