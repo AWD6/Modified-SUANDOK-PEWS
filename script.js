@@ -205,6 +205,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.symptom-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             state.symptomsChanged = this.dataset.value;
+            updateTotalScore(); // เรียก Update Score เพื่อให้ Note อัปเดตทันที
         });
     });
 });
@@ -246,7 +247,7 @@ window.closeDetailModal = function() {
     document.getElementById('detail-modal').style.display = 'none';
 };
 
-// --- Scoring Logic (ปรับปรุงใหม่ตามเงื่อนไขคุณ) ---
+// --- Scoring Logic ---
 
 function calculateTemperatureScore() {
     const temp = parseFloat(state.temperatureValue);
@@ -354,10 +355,9 @@ function calculateRespiratoryScore() {
     const spo2 = parseFloat(state.spo2);
     let rrScore = 0, oxygenScore = 0, spo2Score = 0;
 
-    // --- 1. RR Score (คงเดิมตามกลุ่มอายุ) ---
     const id = state.ageGroup;
     let criteria = { s0:'', s1:'', s2:'', s3:'' };
-    // ... (ส่วนการคำนวณ RR Score เดิม) ...
+    
     if (id === 'newborn' || id === 'infant') {
         if (rr >= 35 && rr <= 50) rrScore = 0;
         else if (rr >= 51 && rr <= 59) rrScore = 1;
@@ -378,23 +378,19 @@ function calculateRespiratoryScore() {
         criteria = { s0:'RR 20-30 tpm', s1:'RR 31-39 tpm', s2:'RR 40-49 tpm', s3:'RR ≤ 16 หรือ ≥ 50 tpm' };
     }
 
-    // --- 2. Retraction & Oxygen Score (คงเดิม) ---
     if (state.retraction === 'yes' && rrScore < 3) rrScore = Math.max(rrScore, 1);
     if (state.fio2 === '30' || state.o2 === '4') oxygenScore = Math.max(oxygenScore, 1);
     if (state.fio2 === '40' || state.o2 === '6') oxygenScore = Math.max(oxygenScore, 2);
     if (state.fio2 === '50' || state.o2 === '8') oxygenScore = Math.max(oxygenScore, 3);
 
-    // --- 3. SpO2 Score (ปรับปรุงใหม่ตามเงื่อนไขคุณ) ---
     if (!isNaN(spo2)) {
         if (state.chdType === 'cyanotic') {
-            // กรณี Cyanotic CHD: < 75% เท่านั้นที่ได้ 3 คะแนน
             if (spo2 < 75) {
                 spo2Score = 3;
             } else {
-                spo2Score = 0; // 75-100% ไม่นับคะแนนในส่วน SpO2
+                spo2Score = 0;
             }
         } else {
-            // กรณีทั่วไป หรือ Acyanotic CHD: < 95% ได้ 3 คะแนน
             if (spo2 < 95) {
                 spo2Score = 3;
             }
@@ -405,7 +401,6 @@ function calculateRespiratoryScore() {
     state.respiratoryScore = finalScore;
     document.getElementById('resp-score-val').innerText = finalScore;
 
-    // --- 4. การแสดงข้อความในหน้าต่างรายละเอียด (Detail) ---
     const isCyanoticSevere = (state.chdType === 'cyanotic' && !isNaN(spo2) && spo2 < 75);
     let spo2CriteriaText = state.chdType === 'cyanotic' ? 'SpO₂ < 75%' : 'SpO₂ < 95%';
     const cyanoticNote = isCyanoticSevere ? ' <span style="color:#d97706; font-weight:bold;">(Cyanotic CHD + SpO₂ < 75%)</span>' : '';
@@ -426,16 +421,14 @@ function calculateRespiratoryScore() {
 }
 function checkCyanoticCHDCondition() {
     const spo2 = parseInt(state.spo2);
-    // ยกเลิกการบวกคะแนน +4 ทิ้ง
     state.chdAlertScore = 0;
     state.chdAlertMessage = '';
     
-    // แสดงแค่ Banner คำเตือนหาก SpO2 < 75% ในเคส Cyanotic
     if (state.chdType === 'cyanotic' && !isNaN(spo2) && spo2 < 75) {
         state.chdAlertMessage = 'SpO2 < 75% ใน Cyanotic CHD: พิจารณาส่งต่อ ER ด่วน!';
     }
     
-    calculateRespiratoryScore(); // สั่งรีเฟรชข้อความในหน้าต่างรายละเอียด
+    calculateRespiratoryScore();
 }
 
 // --- Render & UI ---
@@ -507,7 +500,6 @@ function updateTotalScore() {
     const resp = state.respiratoryScore || 0;
     const add = state.additionalRisk ? 2 : 0;
     
-    // state.chdAlertScore เป็น 0 เสมอตามเงื่อนไขใหม่
     let total = temp + behav + cardio + resp + add + state.chdAlertScore;
 
     let riskLevel = 'low';
@@ -541,8 +533,25 @@ function updateTotalScore() {
         </div>
     `;
 
-    document.getElementById('nursing-notes').value = rec;
-    state.nursingNotes = rec;
+    // --- ส่วนที่ปรับปรุงสำหรับการสร้าง Note อัตโนมัติเมื่อประเมินซ้ำ ---
+    let finalNote = rec;
+
+    if (state.isReassessment && state.parentRecordId) {
+        const parent = state.records.find(r => r.id === state.parentRecordId);
+        if (parent) {
+            const oldScore = parent.totalScore;
+            const newScore = total;
+            
+            // แปลงค่า symptomsChanged เป็นข้อความไทย
+            const oldSymText = parent.symptomsChanged === 'yes' ? 'มี' : 'ไม่มี';
+            const newSymText = state.symptomsChanged === 'yes' ? 'มี' : 'ไม่มี';
+
+            finalNote = `[ประเมินซ้ำ] คะแนน: ${oldScore} ➜ ${newScore} | อาการเปลี่ยน: ${oldSymText} ➜ ${newSymText} | Note: ${rec}`;
+        }
+    }
+
+    document.getElementById('nursing-notes').value = finalNote;
+    state.nursingNotes = finalNote;
 }
 
 // --- Save & History Records ---
@@ -671,6 +680,7 @@ async function saveRecord(action) {
         additionalRisk: state.additionalRisk,
         chdAlertScore: state.chdAlertScore,
         nursingNotes: state.nursingNotes,
+        symptomsChanged: state.symptomsChanged, // บันทึกสถานะอาการเปลี่ยน
         transferDestination: transferValue,
         palsEnabled: state.palsEnabled,
         isReassessment: state.isReassessment,
