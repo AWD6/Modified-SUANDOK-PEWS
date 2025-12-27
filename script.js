@@ -354,9 +354,10 @@ function calculateRespiratoryScore() {
     const spo2 = parseFloat(state.spo2);
     let rrScore = 0, oxygenScore = 0, spo2Score = 0;
 
+    // --- 1. RR Score (คงเดิมตามกลุ่มอายุ) ---
     const id = state.ageGroup;
     let criteria = { s0:'', s1:'', s2:'', s3:'' };
-    
+    // ... (ส่วนการคำนวณ RR Score เดิม) ...
     if (id === 'newborn' || id === 'infant') {
         if (rr >= 35 && rr <= 50) rrScore = 0;
         else if (rr >= 51 && rr <= 59) rrScore = 1;
@@ -377,42 +378,52 @@ function calculateRespiratoryScore() {
         criteria = { s0:'RR 20-30 tpm', s1:'RR 31-39 tpm', s2:'RR 40-49 tpm', s3:'RR ≤ 16 หรือ ≥ 50 tpm' };
     }
 
+    // --- 2. Retraction & Oxygen Score (คงเดิม) ---
     if (state.retraction === 'yes' && rrScore < 3) rrScore = Math.max(rrScore, 1);
     if (state.fio2 === '30' || state.o2 === '4') oxygenScore = Math.max(oxygenScore, 1);
     if (state.fio2 === '40' || state.o2 === '6') oxygenScore = Math.max(oxygenScore, 2);
     if (state.fio2 === '50' || state.o2 === '8') oxygenScore = Math.max(oxygenScore, 3);
 
-    // SpO2 < 95% = 3 คะแนน (ครอบคลุม SpO2 < 75% โดยอัตโนมัติ)
-    if (!isNaN(spo2) && spo2 < 95) {
-        spo2Score = 3;
+    // --- 3. SpO2 Score (ปรับปรุงใหม่ตามเงื่อนไขคุณ) ---
+    if (!isNaN(spo2)) {
+        if (state.chdType === 'cyanotic') {
+            // กรณี Cyanotic CHD: < 75% เท่านั้นที่ได้ 3 คะแนน
+            if (spo2 < 75) {
+                spo2Score = 3;
+            } else {
+                spo2Score = 0; // 75-100% ไม่นับคะแนนในส่วน SpO2
+            }
+        } else {
+            // กรณีทั่วไป หรือ Acyanotic CHD: < 95% ได้ 3 คะแนน
+            if (spo2 < 95) {
+                spo2Score = 3;
+            }
+        }
     }
 
     const finalScore = Math.max(rrScore, oxygenScore, spo2Score);
     state.respiratoryScore = finalScore;
     document.getElementById('resp-score-val').innerText = finalScore;
 
-    const retractionText = state.retraction === 'yes' ? 'มี Retraction' : 'ไม่มี Retraction';
-    const oxygenText = state.fio2 || state.o2 ? (state.fio2 ? `FiO₂ ≥ ${state.fio2}%` : `O₂ ≥ ${state.o2} LPM`) : 'Room air';
-    
-    // เงื่อนไข Cyanotic CHD เฉพาะสำหรับการแสดงข้อความใน Detail
+    // --- 4. การแสดงข้อความในหน้าต่างรายละเอียด (Detail) ---
     const isCyanoticSevere = (state.chdType === 'cyanotic' && !isNaN(spo2) && spo2 < 75);
-    const cyanoticText = isCyanoticSevere ? ' <span style="color:#d97706; font-weight:bold;">(Cyanotic CHD + SpO₂ < 75%)</span>' : '';
+    let spo2CriteriaText = state.chdType === 'cyanotic' ? 'SpO₂ < 75%' : 'SpO₂ < 95%';
+    const cyanoticNote = isCyanoticSevere ? ' <span style="color:#d97706; font-weight:bold;">(Cyanotic CHD + SpO₂ < 75%)</span>' : '';
 
     state.details.resp = `
-        <p><strong>ข้อมูลที่ระบุ:</strong> RR: ${rr||'-'}, Retraction: ${retractionText}, FiO2/O2: ${oxygenText}, SpO2: ${spo2||'-'}%</p>
+        <p><strong>ข้อมูลที่ระบุ:</strong> RR: ${rr||'-'}, SpO2: ${spo2||'-'}%, CHD: ${state.chdType||'ไม่มี'}</p>
         <hr style="margin:0.5rem 0;">
-        <p><strong>เกณฑ์คะแนน:</strong></p>
+        <p><strong>เกณฑ์คะแนนระบบหายใจ:</strong></p>
         <ul style="list-style:none; padding:0;">
-            <li class="${getDetailClass(finalScore, 0)}">0 คะแนน: ${criteria.s0}, ไม่มี Retraction, Room air หรือ O₂ < 4 LPM</li>
-            <li class="${getDetailClass(finalScore, 1)}">1 คะแนน: ${criteria.s1} หรือ ${retractionText} หรือ FiO₂ ≥ 30% หรือ O₂ ≥ 4 LPM</li>
+            <li class="${getDetailClass(finalScore, 0)}">0 คะแนน: ${criteria.s0}, Room air</li>
+            <li class="${getDetailClass(finalScore, 1)}">1 คะแนน: ${criteria.s1} หรือ มี Retraction หรือ FiO₂ ≥ 30% หรือ O₂ ≥ 4 LPM</li>
             <li class="${getDetailClass(finalScore, 2)}">2 คะแนน: ${criteria.s2} หรือ FiO₂ ≥ 40% หรือ O₂ ≥ 6 LPM</li>
-            <li class="${getDetailClass(finalScore, 3)}">3 คะแนน: ${criteria.s3} หรือ FiO₂ ≥ 50% หรือ O₂ ≥ 8 LPM หรือ SpO₂ < 95%${cyanoticText}</li>
+            <li class="${getDetailClass(finalScore, 3)}">3 คะแนน: ${criteria.s3} หรือ FiO₂ ≥ 50% หรือ O₂ ≥ 8 LPM หรือ ${spo2CriteriaText}${cyanoticNote}</li>
         </ul>
         <p style="margin-top:0.5rem; font-size:1.2rem; font-weight:bold;">คะแนนที่ได้: ${finalScore}</p>
     `;
     updateTotalScore();
 }
-
 function checkCyanoticCHDCondition() {
     const spo2 = parseInt(state.spo2);
     // ยกเลิกการบวกคะแนน +4 ทิ้ง
