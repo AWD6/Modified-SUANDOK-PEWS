@@ -1,11 +1,11 @@
-// --- 1. ข้อมูลกลุ่มอายุ ---
+// --- 1. ข้อมูลกลุ่มอายุ (อัปเดตเกณฑ์ Newborn) ---
 const ageGroups = [
     {
         id: 'newborn',
         name: 'Newborn',
         ageRange: 'แรกเกิด-1 เดือน',
-        heartRate: { min: 80, max: 140 },
-        respiratoryRate: { min: 35, max: 50 }
+        heartRate: { min: 120, max: 160 },
+        respiratoryRate: { min: 30, max: 60 }
     },
     {
         id: 'infant',
@@ -44,9 +44,9 @@ const ageGroups = [
     }
 ];
 
-// --- 2. ตัวเลือกพฤติกรรม ---
+// --- 2. ตัวเลือกพฤติกรรม (เปลี่ยนคำอธิบายคะแนน 0) ---
 const behaviorOptions = [
-    { score: 0, label: "เล่นเหมาะสม" },
+    { score: 0, label: "Alert, Reactive to Stimuli" },
     { score: 1, label: "หลับ (ปลุกตื่น)" },
     { score: 2, label: "ร้องไห้งอแง พักไม่ได้" },
     { score: 3, label: "ซึม/สับสน หรือ ตอบสนองต่อการกระตุ้นความปวดลดลง" }
@@ -55,7 +55,7 @@ const behaviorOptions = [
 // --- 3. Google Form Config ---
 const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSdNjCW8kkM3zOJfxL8aC5vWoS32_FIpf4yYusaujFOKbhxQrQ/formResponse';
 
-// --- 4. State Management ---
+// --- 4. State Management (เพิ่ม termCondition) ---
 let state = {
     ageGroup: null,
     temperatureValue: '',
@@ -88,6 +88,7 @@ let state = {
     records: [],
     parentRecordId: null,
     isReassessment: false,
+    termCondition: null, // 'term' หรือ 'preterm'
     details: { temp: '', cardio: '', resp: '' }
 };
 
@@ -143,6 +144,12 @@ document.addEventListener('DOMContentLoaded', function() {
     setupOptionButtons('retraction-options', (val) => { state.retraction = val; calculateRespiratoryScore(); });
     setupOptionButtons('fio2-options', (val) => { state.fio2 = val; calculateRespiratoryScore(); });
     setupOptionButtons('o2-options', (val) => { state.o2 = val; calculateRespiratoryScore(); });
+
+    // Term / Preterm Toggle Listener
+    setupOptionButtons('term-options', (val) => {
+        state.termCondition = val;
+        calculateRespiratoryScore();
+    });
 
     // Risk & Buttons
     document.getElementById('additional-risk').addEventListener('change', (e) => {
@@ -205,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.symptom-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             state.symptomsChanged = this.dataset.value;
-            updateTotalScore(); // เรียก Update Score เพื่อให้ Note อัปเดตทันที
+            updateTotalScore(); 
         });
     });
 });
@@ -213,6 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function setupOptionButtons(containerId, callback) {
     document.querySelectorAll(`#${containerId} .option-btn`).forEach(btn => {
         btn.addEventListener('click', function() {
+            // Check toggle logic for Term/Preterm buttons to act like radio buttons
             document.querySelectorAll(`#${containerId} .option-btn`).forEach(b => b.classList.remove('selected'));
             this.classList.add('selected');
             callback(this.dataset.value);
@@ -252,18 +260,30 @@ window.closeDetailModal = function() {
 function calculateTemperatureScore() {
     const temp = parseFloat(state.temperatureValue);
     let score = 0;
+    
+    // ลอจิกอุณหภูมิใหม่:
+    // < 36.0 -> 1
+    // 36.5 - 37.5 -> 0
+    // 37.6 - 38.9 -> 1
+    // >= 39.0 -> 2
+    // (ช่วงว่าง 36.0-36.4 ตีเป็น 0 ตามหลักปฏิบัติทั่วไป)
+    
     if (!isNaN(temp)) {
         if (temp >= 39.0) { score = 2; }
-        else if (temp >= 38.0 && temp <= 38.9) { score = 1; }
-        else { score = 0; }
+        else if (temp >= 37.6 && temp <= 38.9) { score = 1; }
+        else if (temp >= 36.5 && temp <= 37.5) { score = 0; } 
+        else if (temp < 36.0) { score = 1; }
+        else { score = 0; } // 36.0 - 36.4
     }
+    
     state.details.temp = `
         <p><strong>ค่าที่ระบุ:</strong> ${state.temperatureValue || '-'} °C</p>
         <hr style="margin:0.5rem 0;">
         <p><strong>เกณฑ์การให้คะแนน:</strong></p>
         <ul style="list-style:none; padding:0;">
-            <li class="${getDetailClass(score, 0)}">0 คะแนน: ≤ 37.9 °C</li>
-            <li class="${getDetailClass(score, 1)}">1 คะแนน: 38.0 - 38.9 °C</li>
+            <li class="${getDetailClass(score, 1)}">1 คะแนน: < 36.0 °C</li>
+            <li class="${getDetailClass(score, 0)}">0 คะแนน: 36.5 - 37.5 °C</li>
+            <li class="${getDetailClass(score, 1)}">1 คะแนน: 37.6 - 38.9 °C</li>
             <li class="${getDetailClass(score, 2)}">2 คะแนน: ≥ 39.0 °C</li>
         </ul>
         <p style="margin-top:0.5rem; font-size:1.2rem; font-weight:bold;">คะแนนที่ได้: ${score}</p>
@@ -283,7 +303,17 @@ function calculateCardiovascularScore() {
     const id = state.ageGroup;
     let criteria = { s0: '', s1: '', s2: '', s3: '' };
     
-    if (id === 'newborn' || id === 'infant') {
+    // แยกตรรกะ Newborn ออกจาก Infant
+    if (id === 'newborn') {
+        // Newborn: 0 คะแนนคือ 120-160
+        // ปรับสเกลคะแนนอื่นๆ โดยอิงจากการขยับช่วงของ Infant
+        if (pr >= 120 && pr <= 160) prScore = 0;
+        else if (pr >= 161 && pr <= 169) prScore = 1;
+        else if (pr >= 170 && pr <= 179) prScore = 2;
+        else if (pr >= 180 || pr < 120) prScore = 3; 
+        criteria = { s0:'PR 120-160', s1:'PR 161-169', s2:'PR 170-179', s3:'PR ≥ 180 หรือ < 120' };
+
+    } else if (id === 'infant') {
         if (pr <= 140) prScore = 0;
         else if (pr >= 141 && pr <= 149) prScore = 1;
         else if (pr >= 150 && pr <= 159) prScore = 2;
@@ -315,7 +345,9 @@ function calculateCardiovascularScore() {
         criteria = { s0:'PR ≤ 100', s1:'PR 111-119', s2:'PR 120-129', s3:'PR ≥ 130 หรือ ≤ 59' };
     }
 
-    let skinCrtCriteria = { s0: 'ผิวสีชมพูดี, CRT 1-2 วินาที', s1: 'ผิวสีซีด, CRT 3 วินาที', s2: 'ผิวสีเทา, CRT ≥ 4 วินาที', s3: 'ตัวลาย' };
+    // แก้ไข Label CRT เป็น <= 2
+    let skinCrtCriteria = { s0: 'ผิวสีชมพูดี, CRT ≤ 2 วินาที', s1: 'ผิวสีซีด, CRT 3 วินาที', s2: 'ผิวสีเทา, CRT ≥ 4 วินาที', s3: 'ตัวลาย' };
+    
     if (skinColor === 'pink' && crt === '1-2') { skinCrtScore = 0; }
     else if (skinColor === 'pale' || crt === '3') { skinCrtScore = 1; }
     else if (skinColor === 'gray' || crt === '4+') { skinCrtScore = 2; }
@@ -339,10 +371,10 @@ function calculateCardiovascularScore() {
         <hr style="margin:0.5rem 0;">
         <p><strong>เกณฑ์การประเมินคะแนน (${ageGroups.find(g=>g.id===state.ageGroup).ageRange}):</strong></p>
         <ul style="list-style:none; padding:0;">
-            <li class="${getDetailClass(finalScore, 0)}">0 คะแนน: PR: ${criteria.s0} / ${skinCrtCriteria.s0}</li>
-            <li class="${getDetailClass(finalScore, 1)}">1 คะแนน: PR: ${criteria.s1} / ${skinCrtCriteria.s1}</li>
-            <li class="${getDetailClass(finalScore, 2)}">2 คะแนน: PR: ${criteria.s2} / ${skinCrtCriteria.s2}</li>
-            <li class="${getDetailClass(finalScore, 3)}">3 คะแนน: PR: ${criteria.s3} / ${skinCrtCriteria.s3}</li>
+            <li class="${getDetailClass(finalScore, 0)}">0 คะแนน: ${criteria.s0} / ${skinCrtCriteria.s0}</li>
+            <li class="${getDetailClass(finalScore, 1)}">1 คะแนน: ${criteria.s1} / ${skinCrtCriteria.s1}</li>
+            <li class="${getDetailClass(finalScore, 2)}">2 คะแนน: ${criteria.s2} / ${skinCrtCriteria.s2}</li>
+            <li class="${getDetailClass(finalScore, 3)}">3 คะแนน: ${criteria.s3} / ${skinCrtCriteria.s3}</li>
         </ul>
         <p style="margin-top:0.5rem; font-size:1.2rem; font-weight:bold;">คะแนนที่ได้: ${finalScore}</p>
     `;
@@ -358,7 +390,16 @@ function calculateRespiratoryScore() {
     const id = state.ageGroup;
     let criteria = { s0:'', s1:'', s2:'', s3:'' };
     
-    if (id === 'newborn' || id === 'infant') {
+    // แยกตรรกะ Newborn
+    if (id === 'newborn') {
+        // Newborn RR 0 คะแนนคือ 30-60
+        if (rr >= 30 && rr <= 60) rrScore = 0;
+        else if (rr >= 61 && rr <= 69) rrScore = 1;
+        else if (rr >= 70 && rr <= 79) rrScore = 2;
+        else if (rr <= 20 || rr >= 80) rrScore = 3; 
+        criteria = { s0:'RR 30-60 tpm', s1:'RR 61-69 tpm', s2:'RR 70-79 tpm', s3:'RR ≤ 20 หรือ ≥ 80 tpm' };
+
+    } else if (id === 'infant') {
         if (rr >= 35 && rr <= 50) rrScore = 0;
         else if (rr >= 51 && rr <= 59) rrScore = 1;
         else if (rr >= 60 && rr <= 69) rrScore = 2;
@@ -383,16 +424,22 @@ function calculateRespiratoryScore() {
     if (state.fio2 === '40' || state.o2 === '6') oxygenScore = Math.max(oxygenScore, 2);
     if (state.fio2 === '50' || state.o2 === '8') oxygenScore = Math.max(oxygenScore, 3);
 
+    // ลอจิก SpO2 ใหม่ (รวม Term/Preterm)
     if (!isNaN(spo2)) {
         if (state.chdType === 'cyanotic') {
-            if (spo2 < 75) {
+            // กรณี Cyanotic CHD
+            if (spo2 < 75) spo2Score = 3; else spo2Score = 0;
+        } else {
+            // กรณีปกติ หรือ Term/Preterm
+            let threshold = 95; // Default (Term หรือ ไม่ระบุ)
+            if (state.termCondition === 'preterm') {
+                threshold = 90; // Preterm
+            }
+            
+            if (spo2 < threshold) {
                 spo2Score = 3;
             } else {
                 spo2Score = 0;
-            }
-        } else {
-            if (spo2 < 95) {
-                spo2Score = 3;
             }
         }
     }
@@ -401,12 +448,19 @@ function calculateRespiratoryScore() {
     state.respiratoryScore = finalScore;
     document.getElementById('resp-score-val').innerText = finalScore;
 
+    // สร้างข้อความ Detail
     const isCyanoticSevere = (state.chdType === 'cyanotic' && !isNaN(spo2) && spo2 < 75);
-    let spo2CriteriaText = state.chdType === 'cyanotic' ? 'SpO₂ < 75%' : 'SpO₂ < 95%';
-    const cyanoticNote = isCyanoticSevere ? ' <span style="color:#d97706; font-weight:bold;">(Cyanotic CHD + SpO₂ < 75%)</span>' : '';
+    
+    let spo2CriteriaText = 'SpO₂ < 95%';
+    if (state.chdType === 'cyanotic') spo2CriteriaText = 'SpO₂ < 75% (Cyanotic)';
+    else if (state.termCondition === 'preterm') spo2CriteriaText = 'SpO₂ < 90% (Preterm)';
+    else if (state.termCondition === 'term') spo2CriteriaText = 'SpO₂ < 95% (Term)';
+    
+    const cyanoticNote = isCyanoticSevere ? ' <span style="color:#d97706; font-weight:bold;">(Critical)</span>' : '';
+    const conditionText = state.chdType ? state.chdType : (state.termCondition || 'Normal');
 
     state.details.resp = `
-        <p><strong>ข้อมูลที่ระบุ:</strong> RR: ${rr||'-'}, SpO2: ${spo2||'-'}%, CHD: ${state.chdType||'ไม่มี'}</p>
+        <p><strong>ข้อมูลที่ระบุ:</strong> RR: ${rr||'-'}, SpO2: ${spo2||'-'}%, Condition: ${conditionText}</p>
         <hr style="margin:0.5rem 0;">
         <p><strong>เกณฑ์คะแนนระบบหายใจ:</strong></p>
         <ul style="list-style:none; padding:0;">
@@ -533,7 +587,7 @@ function updateTotalScore() {
         </div>
     `;
 
-    // --- ส่วนที่ปรับปรุงสำหรับการสร้าง Note อัตโนมัติเมื่อประเมินซ้ำ ---
+    // Note อัตโนมัติ
     let finalNote = rec;
 
     if (state.isReassessment && state.parentRecordId) {
@@ -541,11 +595,8 @@ function updateTotalScore() {
         if (parent) {
             const oldScore = parent.totalScore;
             const newScore = total;
-            
-            // แปลงค่า symptomsChanged เป็นข้อความไทย
             const oldSymText = parent.symptomsChanged === 'yes' ? 'มี' : 'ไม่มี';
             const newSymText = state.symptomsChanged === 'yes' ? 'มี' : 'ไม่มี';
-
             finalNote = `[ประเมินซ้ำ] คะแนน: ${oldScore} ➜ ${newScore} | อาการเปลี่ยน: ${oldSymText} ➜ ${newSymText} | Note: ${rec}`;
         }
     }
@@ -613,6 +664,8 @@ async function submitToGoogleForm(record) {
     };
 
     const chdTypeMapping = { 'acyanotic': 'Acyanotic CHD', 'cyanotic': 'Cyanotic CHD', '': 'ไม่มี CHD' };
+    
+    const conditionStr = record.chdType ? chdTypeMapping[record.chdType] : (record.termCondition === 'preterm' ? 'Preterm' : (record.termCondition === 'term' ? 'Term' : 'ไม่ระบุ'));
 
     const vitalSignsText = `Temp: ${safeText(record.temperatureValue)} | PR: ${safeText(record.prValue)} | RR: ${safeText(record.rrValue)} | BP: ${safeText(record.bloodPressure)} | SpO₂: ${safeText(record.spo2)}%`;
     const scoreDetailsText = `Temp Score: ${safeText(record.temperatureScore)} | Behav: ${safeText(record.behaviorScore)} | Cardio: ${safeText(record.cardiovascularScore)} | Resp: ${safeText(record.respiratoryScore)}`;
@@ -625,7 +678,7 @@ async function submitToGoogleForm(record) {
     formData.append(FORM_FIELD_IDS.totalScore, safeText(record.totalScore));
     formData.append(FORM_FIELD_IDS.vitalSigns, vitalSignsText);
     formData.append(FORM_FIELD_IDS.scoreDetails, scoreDetailsText);
-    formData.append(FORM_FIELD_IDS.chd, chdTypeMapping[record.chdType] || 'ไม่ระบุ');
+    formData.append(FORM_FIELD_IDS.chd, conditionStr);
     formData.append(FORM_FIELD_IDS.pals, record.palsEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน');
     formData.append(FORM_FIELD_IDS.notes, safeText(record.nursingNotes));
     formData.append(FORM_FIELD_IDS.transfer, safeText(record.transferDestination));
@@ -673,6 +726,7 @@ async function saveRecord(action) {
         rrValue: state.rrValue,
         spo2: state.spo2,
         chdType: state.chdType,
+        termCondition: state.termCondition, // บันทึก Term/Preterm
         temperatureScore: temp, 
         behaviorScore: behav,
         cardiovascularScore: cardio, 
@@ -680,7 +734,7 @@ async function saveRecord(action) {
         additionalRisk: state.additionalRisk,
         chdAlertScore: state.chdAlertScore,
         nursingNotes: state.nursingNotes,
-        symptomsChanged: state.symptomsChanged, // บันทึกสถานะอาการเปลี่ยน
+        symptomsChanged: state.symptomsChanged,
         transferDestination: transferValue,
         palsEnabled: state.palsEnabled,
         isReassessment: state.isReassessment,
@@ -717,6 +771,7 @@ function resetForm() {
     state.skinColor = ''; state.crt = ''; state.retraction = ''; state.fio2 = ''; state.o2 = ''; state.spo2 = '';
     state.chdType = ''; state.chdAlertScore = 0; state.chdAlertMessage = '';
     state.palsEnabled = false; state.parentRecordId = null; state.isReassessment = false;
+    state.termCondition = null; // Reset Term/Preterm
 
     document.getElementById('hn-input-top').value = '';
     document.getElementById('location-select').value = '';
@@ -820,6 +875,10 @@ function renderRecords() {
         const riskLevel = getRiskLevel(record.totalScore);
         const scoreColorClass = riskLevel === 'low' ? 'score-green' : riskLevel === 'medium' ? 'score-yellow' : riskLevel === 'orange' ? 'score-orange' : 'score-red';
         
+        const condBadge = record.chdType 
+            ? `<span class="chd-badge">${record.chdType === 'acyanotic' ? '○ Acyanotic' : '● Cyanotic'}</span>` 
+            : (record.termCondition ? `<span class="chd-badge" style="background:linear-gradient(135deg, #f59e0b, #d97706);">${record.termCondition}</span>` : '');
+
         return `
             <div class="record-card">
                 <div class="record-header">
@@ -832,7 +891,7 @@ function renderRecords() {
                     <div class="detail-row"><span class="detail-label">คะแนนรวม:</span><span class="total-score-badge ${scoreColorClass}">${record.totalScore}</span></div>
                     ${record.nursingNotes ? `<div class="detail-row"><span class="detail-label">การพยาบาล:</span><span>${record.nursingNotes}</span></div>` : ''}
                     ${record.transferDestination ? `<div class="detail-row"><span class="detail-label">ส่งต่อ:</span><span class="transfer-badge">${record.transferDestination}</span></div>` : ''}
-                    ${record.chdType ? `<div class="detail-row"><span class="detail-label">CHD:</span><span class="chd-badge">${record.chdType === 'acyanotic' ? '○ Acyanotic CHD' : '● Cyanotic CHD'}</span></div>` : ''}
+                    ${condBadge ? `<div class="detail-row"><span class="detail-label">Cond:</span>${condBadge}</div>` : ''}
                     ${record.palsEnabled ? `<div class="detail-row"><span class="detail-label">PALS:</span><span class="pals-badge">PALS</span></div>` : ''}
                 </div>
                 <div class="vital-signs-summary">
