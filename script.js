@@ -38,7 +38,7 @@ const ageGroups = [
     {
         id: 'adolescent',
         name: 'Adolescent',
-        ageRange: '13-19 ปี',
+        ageRange: '13-15 ปี',
         heartRate: { min: 60, max: 100 },
         respiratoryRate: { min: 20, max: 30 }
     }
