@@ -58,13 +58,79 @@ let state = {
 
 let isSavingRecord = false;
 const submittedRecordIds = new Set();
+const ROOM_PREFERENCES_KEY = 'pewsRoomPreferences';
+
+function restoreRoomPreferences() {
+    try {
+        const savedPreferences = JSON.parse(localStorage.getItem(ROOM_PREFERENCES_KEY) || '{}');
+        state.location = savedPreferences.location || '';
+        state.locationOther = savedPreferences.locationOther || '';
+        state.transferDestination = savedPreferences.transferDestination || '';
+        state.transferDestinationOther = savedPreferences.transferDestinationOther || '';
+    } catch (error) {
+        console.warn('Unable to restore room preferences:', error);
+    }
+
+    document.getElementById('location-select').value = state.location;
+    document.getElementById('location-other').value = state.locationOther;
+    document.getElementById('location-other').style.display = state.location === 'อื่นๆ' ? 'block' : 'none';
+    document.getElementById('transfer-destination-select').value = state.transferDestination;
+    document.getElementById('transfer-destination-other').value = state.transferDestinationOther;
+    document.getElementById('transfer-destination-other').style.display = state.transferDestination === 'อื่นๆ' ? 'block' : 'none';
+}
+
+function saveRoomPreferences() {
+    try {
+        localStorage.setItem(ROOM_PREFERENCES_KEY, JSON.stringify({
+            location: state.location,
+            locationOther: state.locationOther,
+            transferDestination: state.transferDestination,
+            transferDestinationOther: state.transferDestinationOther
+        }));
+    } catch (error) {
+        console.warn('Unable to save room preferences:', error);
+    }
+}
+
+function openTransferModal() {
+    const modal = document.getElementById('transfer-modal');
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+    document.getElementById('transfer-launcher').setAttribute('aria-expanded', 'true');
+    document.body.classList.add('modal-open');
+}
+
+function closeTransferModal() {
+    const modal = document.getElementById('transfer-modal');
+    if (!modal) return;
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+    document.getElementById('transfer-launcher').setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('modal-open');
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     loadRecords();
+    restoreRoomPreferences();
     renderAgeGrid();
     renderBehaviorGrid();
     renderRecords();
     updateTotalScore();
+
+    const transferSection = document.getElementById('transfer-section');
+    document.getElementById('transfer-modal-body').prepend(transferSection);
+    transferSection.hidden = false;
+
+    document.getElementById('transfer-launcher').addEventListener('click', openTransferModal);
+    document.getElementById('transfer-modal-close').addEventListener('click', closeTransferModal);
+    document.getElementById('transfer-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'transfer-modal') closeTransferModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.getElementById('transfer-modal').style.display === 'flex') {
+            closeTransferModal();
+        }
+    });
 
     // Event Listeners
     document.getElementById('hn-input-top').addEventListener('input', (e) => state.hn = e.target.value);
@@ -74,8 +140,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const other = document.getElementById('location-other');
         other.style.display = e.target.value === 'อื่นๆ' ? 'block' : 'none';
         if (e.target.value !== 'อื่นๆ') { state.locationOther = ''; other.value = ''; }
+        saveRoomPreferences();
     });
-    document.getElementById('location-other').addEventListener('input', (e) => state.locationOther = e.target.value);
+    document.getElementById('location-other').addEventListener('input', (e) => {
+        state.locationOther = e.target.value;
+        saveRoomPreferences();
+    });
 
     // Temperature
     document.getElementById('temp-input').addEventListener('input', (e) => {
@@ -159,9 +229,11 @@ document.addEventListener('DOMContentLoaded', function() {
             state.transferDestinationOther = '';
             otherInput.value = '';
         }
+        saveRoomPreferences();
     });
     document.getElementById('transfer-destination-other').addEventListener('input', (e) => {
         state.transferDestinationOther = e.target.value;
+        saveRoomPreferences();
     });
 
     document.querySelector('.btn-transfer').addEventListener('click', () => {
@@ -688,8 +760,10 @@ async function saveRecord(action) {
 
     alert('บันทึกสำเร็จ');
     isSavingRecord = false;
-    if (btn) btn.innerText = 'ส่งต่อข้อมูล';
+    if (btn) btn.innerText = 'บันทึกและส่งต่อ';
     resetForm();
+    closeTransferModal();
+    document.getElementById('hn-input-top').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function resetForm() {
@@ -698,9 +772,8 @@ function resetForm() {
     state.behaviorScore = null;
     state.cardiovascularScore = 0; state.respiratoryScore = 0;
     state.additionalRisk = false;
-    state.hn = ''; state.location = ''; state.locationOther = '';
+    state.hn = '';
     state.nursingNotes = ''; state.symptomsChanged = 'no';
-    state.transferDestination = ''; state.transferDestinationOther = '';
     state.prValue = ''; state.rrValue = ''; state.sbpValue = ''; state.dbpValue = '';
     state.skinColor = ''; state.crt = ''; state.retraction = ''; state.fio2 = ''; state.o2 = ''; state.spo2 = '';
     state.chdType = ''; state.chdAlertScore = 0; state.chdAlertMessage = '';
@@ -708,8 +781,9 @@ function resetForm() {
     state.termCondition = null;
 
     document.getElementById('hn-input-top').value = '';
-    document.getElementById('location-select').value = '';
-    document.getElementById('location-other').style.display = 'none';
+    document.getElementById('location-select').value = state.location;
+    document.getElementById('location-other').value = state.locationOther;
+    document.getElementById('location-other').style.display = state.location === 'อื่นๆ' ? 'block' : 'none';
     document.getElementById('temp-input').value = '';
     document.getElementById('pr-input').value = '';
     document.getElementById('sbp-input').value = ''; document.getElementById('dbp-input').value = '';
@@ -719,8 +793,9 @@ function resetForm() {
     document.getElementById('pals-button').classList.remove('active');
     document.getElementById('chd-selected').style.display = 'none';
     document.getElementById('nursing-notes').value = '';
-    document.getElementById('transfer-destination-select').value = '';
-    document.getElementById('transfer-destination-other').style.display = 'none';
+    document.getElementById('transfer-destination-select').value = state.transferDestination;
+    document.getElementById('transfer-destination-other').value = state.transferDestinationOther;
+    document.getElementById('transfer-destination-other').style.display = state.transferDestination === 'อื่นๆ' ? 'block' : 'none';
 
     document.querySelectorAll('.age-button, .score-button, .option-btn').forEach(btn => btn.classList.remove('selected'));
     document.querySelectorAll('.symptom-btn').forEach(b => b.classList.remove('active'));
